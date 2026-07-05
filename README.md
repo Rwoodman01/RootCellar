@@ -113,6 +113,8 @@ firebase deploy --only hosting
 
 Firebase serves the generated `dist/` folder and rewrites routes like `/daily-bread` and `/huddle` back to `index.html`.
 
+Household data is not synced to Firebase yet. The proposed Firestore path is documented in `docs/firebase-data-plan.md`.
+
 ## Data Model
 
 Alpha data is stored in the browser under the `rootcellar.alpha.v1` localStorage key.

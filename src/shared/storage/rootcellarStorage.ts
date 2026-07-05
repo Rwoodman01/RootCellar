@@ -11,9 +11,21 @@ import { createEmptyHuddleData, ensureHuddleData } from "../../modules/huddle/hu
 
 const STORAGE_KEY = "rootcellar.alpha.v1";
 
+export type RootcellarStartFocus = "daily-rhythm" | "food-stores" | "garden" | "animals" | "chores" | "preservation";
+
+export interface RootcellarHouseholdProfile {
+  householdName: string;
+  locationLabel: string;
+  startFocus: RootcellarStartFocus;
+  onboardingCompletedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface RootcellarLocalData {
   schemaVersion: 1;
   updatedAt: string;
+  householdProfile: RootcellarHouseholdProfile;
   preservationPlans: PreservationPlan[];
   pantry: PantryData;
   garden: GardenData;
@@ -26,6 +38,7 @@ export function createEmptyLocalData(): RootcellarLocalData {
   return {
     schemaVersion: 1,
     updatedAt: new Date().toISOString(),
+    householdProfile: createDefaultHouseholdProfile(),
     preservationPlans: [],
     pantry: {
       products: [],
@@ -51,6 +64,7 @@ export function loadRootcellarData(): RootcellarLocalData {
     return {
       schemaVersion: 1,
       updatedAt: parsed.updatedAt || new Date().toISOString(),
+      householdProfile: ensureHouseholdProfile(parsed.householdProfile),
       preservationPlans: Array.isArray(parsed.preservationPlans) ? parsed.preservationPlans : [],
       pantry: {
         products: Array.isArray(parsed.pantry?.products) ? parsed.pantry.products : [],
@@ -84,4 +98,28 @@ export function saveRootcellarData(data: RootcellarLocalData): void {
 export function clearRootcellarData(): void {
   if (typeof localStorage === "undefined") return;
   localStorage.removeItem(STORAGE_KEY);
+}
+
+export function createDefaultHouseholdProfile(): RootcellarHouseholdProfile {
+  const now = new Date().toISOString();
+  return {
+    householdName: "Our household",
+    locationLabel: "",
+    startFocus: "daily-rhythm",
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+export function ensureHouseholdProfile(profile?: Partial<RootcellarHouseholdProfile>): RootcellarHouseholdProfile {
+  const defaults = createDefaultHouseholdProfile();
+  const startFocuses: RootcellarStartFocus[] = ["daily-rhythm", "food-stores", "garden", "animals", "chores", "preservation"];
+  return {
+    householdName: profile?.householdName?.trim() || defaults.householdName,
+    locationLabel: profile?.locationLabel?.trim() || "",
+    startFocus: startFocuses.includes(profile?.startFocus as RootcellarStartFocus) ? (profile?.startFocus as RootcellarStartFocus) : defaults.startFocus,
+    onboardingCompletedAt: profile?.onboardingCompletedAt || undefined,
+    createdAt: profile?.createdAt || defaults.createdAt,
+    updatedAt: profile?.updatedAt || defaults.updatedAt,
+  };
 }

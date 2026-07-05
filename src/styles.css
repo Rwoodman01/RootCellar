@@ -387,6 +387,19 @@ ul {
   text-decoration: none;
 }
 
+.opening-panel {
+  background:
+    linear-gradient(rgba(23, 50, 37, 0.68), rgba(23, 50, 37, 0.9)),
+    url("/rootcellar-mark.svg") center 32% / 170px no-repeat,
+    var(--leaf);
+}
+
+.onboarding-form {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 0.4rem;
+}
+
 .landing-modules,
 .page-section {
   display: grid;

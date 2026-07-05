@@ -1,7 +1,7 @@
-import { Download, Trash2 } from "lucide-react";
+import { Download, RotateCcw, Trash2 } from "lucide-react";
 import { PageHeader } from "../shared/components/PageHeader";
 import { Button } from "../shared/components/Button";
-import { clearRootcellarData, loadRootcellarData } from "../shared/storage/rootcellarStorage";
+import { clearRootcellarData, loadRootcellarData, saveRootcellarData } from "../shared/storage/rootcellarStorage";
 
 function downloadLocalData() {
   const data = loadRootcellarData();
@@ -15,6 +15,8 @@ function downloadLocalData() {
 }
 
 export function SettingsPage() {
+  const data = loadRootcellarData();
+  const profile = data.householdProfile;
   const handleClearData = () => {
     const confirmed = window.confirm("Clear all local Rootcellar alpha data from this browser?");
     if (!confirmed) return;
@@ -22,11 +24,23 @@ export function SettingsPage() {
     clearRootcellarData();
     window.location.assign("/dashboard");
   };
+  const handleResetOpening = () => {
+    const current = loadRootcellarData();
+    saveRootcellarData({
+      ...current,
+      householdProfile: {
+        ...current.householdProfile,
+        onboardingCompletedAt: undefined,
+        updatedAt: new Date().toISOString(),
+      },
+    });
+    window.location.assign("/");
+  };
 
   return (
     <div className="page-stack">
       <PageHeader eyebrow="Settings" title="About this alpha">
-        <p>Rootcellar currently stores all alpha data in this browser. There is no account, backend, payment, or AI service.</p>
+        <p>Rootcellar is hosted on Firebase, but alpha household data still stays in this browser. There is no account, backend sync, payment, or AI service.</p>
       </PageHeader>
 
       <section className="settings-grid">
@@ -41,6 +55,7 @@ export function SettingsPage() {
             <li>Animal groups, individuals, events, care reminders, feed, and production</li>
             <li>Chores with fixed, decay, condition, season-anchored, and burst recurrence</li>
             <li>Family members, Kid Mode, skip reasons, and Weekly Chore Review</li>
+            <li>Daily Bread and Weekly Huddle</li>
             <li>Local browser persistence</li>
           </ul>
         </div>
@@ -54,6 +69,20 @@ export function SettingsPage() {
             <li>AI features</li>
             <li>Push-notification nagging, points, streaks, allowance, or approval queues</li>
           </ul>
+        </div>
+      </section>
+
+      <section className="settings-panel">
+        <h2>Opening setup</h2>
+        <p>
+          {profile.householdName}
+          {profile.locationLabel ? ` · ${profile.locationLabel}` : ""}. This only changes the local first-run experience.
+        </p>
+        <div className="button-row">
+          <Button type="button" variant="secondary" onClick={handleResetOpening}>
+            <RotateCcw size={18} />
+            Run setup again
+          </Button>
         </div>
       </section>
 
