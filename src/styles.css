@@ -303,6 +303,93 @@ ul {
   background: #eef1df;
 }
 
+.bottom-nav button {
+  flex: 1 0 64px;
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+  min-width: 0;
+  padding: 0.35rem 0.2rem;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.72rem;
+  line-height: 1.05;
+  text-align: center;
+  cursor: pointer;
+}
+
+.bottom-nav button.active {
+  color: var(--leaf-deep);
+  background: #eef1df;
+}
+
+.side-nav-sub {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0.2rem 0 0.35rem 0.5rem;
+  padding-left: 0.6rem;
+  border-left: 1px solid var(--border);
+}
+
+.side-nav-sub a {
+  font-weight: 500;
+  font-size: 0.92rem;
+}
+
+.add-sheet-overlay {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  display: grid;
+  align-items: end;
+}
+
+.add-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(30, 40, 34, 0.35);
+  cursor: pointer;
+}
+
+.add-sheet {
+  position: relative;
+  z-index: 41;
+  display: grid;
+  gap: 0.3rem;
+  margin: 0 0.6rem max(0.9rem, env(safe-area-inset-bottom));
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 6px);
+  background: var(--paper-strong);
+  box-shadow: var(--shadow);
+}
+
+.add-sheet-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.3rem 0.5rem;
+  font-weight: 720;
+}
+
+.add-sheet-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.75rem 0.6rem;
+  border-radius: var(--radius);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.add-sheet-item:hover {
+  background: #eef1df;
+}
+
 .page-stack,
 .landing-page main {
   display: grid;
@@ -498,6 +585,52 @@ ul {
 .session-card small {
   color: var(--muted);
   font-size: 0.82rem;
+}
+
+.homestead-attention {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--clay);
+  border-radius: var(--radius);
+  color: var(--clay-deep);
+  background: #fbeee2;
+  font-weight: 650;
+}
+
+.homestead-room-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.homestead-room-card {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: inherit;
+  background: var(--paper);
+  text-decoration: none;
+  box-shadow: 0 10px 24px rgba(39, 49, 42, 0.08);
+}
+
+.homestead-room-card svg {
+  flex-shrink: 0;
+  color: var(--leaf);
+}
+
+.homestead-room-card strong {
+  display: block;
+  font-size: 1rem;
+}
+
+.homestead-room-card span {
+  color: var(--muted);
+  font-size: 0.85rem;
 }
 
 .module-card-heading span {
@@ -1403,6 +1536,84 @@ textarea:focus {
   min-width: 132px;
 }
 
+.daily-focus-input {
+  width: 100%;
+  max-width: 420px;
+  margin-top: 0.3rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--paper);
+  font-size: 1rem;
+}
+
+.daily-bread-badge {
+  width: fit-content;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  background: #eef1df;
+  color: var(--leaf-deep);
+  font-size: 0.7rem;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+.daily-bread-tally {
+  text-align: center;
+}
+
+.daily-bread-overflow {
+  position: relative;
+}
+
+.daily-bread-overflow summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  list-style: none;
+  cursor: pointer;
+}
+
+.daily-bread-overflow summary::-webkit-details-marker {
+  display: none;
+}
+
+.daily-bread-overflow-menu {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 4px);
+  right: 0;
+  display: grid;
+  gap: 0.15rem;
+  min-width: 140px;
+  padding: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--paper-strong);
+  box-shadow: var(--shadow);
+}
+
+.daily-bread-overflow-menu button,
+.daily-bread-overflow-menu a {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  border: none;
+  border-radius: var(--radius);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.daily-bread-overflow-menu button:hover,
+.daily-bread-overflow-menu a:hover {
+  background: #eef1df;
+}
+
 .rhythm-item-done,
 .rhythm-work-done,
 .rhythm-stuck-solved,
@@ -1432,6 +1643,60 @@ textarea:focus {
 .rhythm-review-check {
   width: fit-content;
   min-width: 134px;
+}
+
+.huddle-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.huddle-steps button {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--muted);
+  font-weight: 650;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.huddle-steps button span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(41, 73, 54, 0.1);
+  font-size: 0.72rem;
+}
+
+.huddle-steps button.active {
+  color: var(--leaf-deep);
+  background: #eef1df;
+  border-color: var(--moss);
+}
+
+.huddle-step-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.rhythm-disclosure {
+  margin-top: 0.6rem;
+}
+
+.rhythm-disclosure summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-weight: 650;
+  padding: 0.4rem 0;
 }
 
 .item-card-top,

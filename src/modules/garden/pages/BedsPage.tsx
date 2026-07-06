@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import { Plus, Save, Trash2 } from "lucide-react";
-import { Button, LinkButton } from "../../../shared/components/Button";
+import { Button } from "../../../shared/components/Button";
 import { PageHeader } from "../../../shared/components/PageHeader";
 import { SUN_OPTIONS, cropFamily } from "../constants";
 import { bedCapacityLabel, bedSquareFeet, bedUsedRowFeet, bedUsedSquareFeet } from "../calculations";
@@ -52,7 +52,7 @@ export function BedsPage() {
 
   return (
     <div className="page-stack">
-      <PageHeader eyebrow="Garden beds" title="Beds, areas, and rough capacity" actions={<LinkButton to="/garden/planner">Open planner</LinkButton>}>
+      <PageHeader eyebrow="Garden beds" title="Beds, areas, and rough capacity">
         <p>No complex map required. A bed is a named place with enough capacity to make planting memory useful.</p>
       </PageHeader>
 

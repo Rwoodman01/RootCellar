@@ -1,15 +1,13 @@
-import { Check, CircleSlash, CornerUpRight, HandHeart, Plus, Wheat } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Check, CircleSlash, CornerUpRight, MoreHorizontal, Plus, Wheat } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { Button, LinkButton } from "../../../shared/components/Button";
+import { Button } from "../../../shared/components/Button";
 import { EmptyState } from "../../../shared/components/EmptyState";
 import { PageHeader } from "../../../shared/components/PageHeader";
 import { formatShortDate } from "../../../shared/utils/dates";
-import { dueCareReminders } from "../../animals/animalUtils";
 import { useAnimals } from "../../animals/useAnimals";
 import { useChores } from "../../chores/useChores";
 import { useGarden } from "../../garden/useGarden";
-import { getUseSoonBatches } from "../../pantry/pantryUtils";
 import { usePantry } from "../../pantry/usePantry";
 import { usePreservationPlans } from "../../preservation/usePreservationPlans";
 import { addDays, getDailyBreadItems, mergeDailyBreadStatuses, todayDate, type DailyBreadSourceItem } from "../rhythmUtils";
@@ -17,14 +15,16 @@ import type { DailyBreadItemStatus, OwnedWorkSourceType } from "../types";
 import { useHuddle } from "../useHuddle";
 
 const groupLabels: Record<DailyBreadSourceItem["group"], string> = {
-  owned: "Owned work",
+  owned: "Owned",
   chores: "Chores",
   animals: "Animals",
   garden: "Garden",
   pantry: "Pantry",
-  preservation: "Preservation",
-  carry: "Carry-forward",
+  preservation: "Preserve",
+  carry: "Carried",
 };
+
+const groupOrder: DailyBreadSourceItem["group"][] = ["carry", "owned", "chores", "animals", "pantry", "preservation", "garden"];
 
 export function DailyBreadPage() {
   const today = todayDate();
@@ -35,18 +35,19 @@ export function DailyBreadPage() {
   const { data: garden } = useGarden();
   const { data: chores, activeMember, completeChore, skipChore } = useChores();
   const entry = huddle.data.dailyBreadEntries.find((item) => item.date === today);
+  const [focusValue, setFocusValue] = useState(entry?.todayFocus || "");
   const [noteForm, setNoteForm] = useState({
-    todayFocus: entry?.todayFocus || "",
     householdNote: entry?.householdNote || "",
     gratitude: entry?.gratitude || "",
     prayerOrReflection: entry?.prayerOrReflection || "",
   });
+  const [addOpen, setAddOpen] = useState(false);
   const [newWorkTitle, setNewWorkTitle] = useState("");
   const [newWorkOwner, setNewWorkOwner] = useState(activeMember?.id || "");
 
   useEffect(() => {
+    setFocusValue(entry?.todayFocus || "");
     setNoteForm({
-      todayFocus: entry?.todayFocus || "",
       householdNote: entry?.householdNote || "",
       gratitude: entry?.gratitude || "",
       prayerOrReflection: entry?.prayerOrReflection || "",
@@ -76,20 +77,23 @@ export function DailyBreadPage() {
     [animals, chores, entry?.selectedItems, garden, huddle.data, pantry, plans, today],
   );
 
-  const grouped = useMemo(
-    () =>
-      (Object.keys(groupLabels) as Array<DailyBreadSourceItem["group"]>)
-        .map((group) => ({ group, items: dailyItems.filter((item) => item.group === group) }))
-        .filter((section) => section.items.length),
-    [dailyItems],
-  );
+  const sortedItems = useMemo(() => {
+    return [...dailyItems].sort((a, b) => {
+      const rank = (item: DailyBreadSourceItem) => (item.status === "carried" ? 0 : item.dueDate && item.dueDate <= today ? 1 : 2);
+      const rankDiff = rank(a) - rank(b);
+      if (rankDiff !== 0) return rankDiff;
+      return groupOrder.indexOf(a.group) - groupOrder.indexOf(b.group);
+    });
+  }, [dailyItems, today]);
+
   const doneCount = dailyItems.filter((item) => item.status === "done").length;
   const carriedCount = dailyItems.filter((item) => item.status === "carried").length;
-  const animalCareCount = dueCareReminders(animals.careReminders, today).length;
-  const useSoonCount = getUseSoonBatches(pantry, 14).length;
 
-  function saveNotes(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function saveFocus() {
+    huddle.updateDailyBreadNotes(today, { todayFocus: focusValue });
+  }
+
+  function saveNotes() {
     huddle.updateDailyBreadNotes(today, noteForm);
   }
 
@@ -106,6 +110,7 @@ export function DailyBreadPage() {
       notes: "",
     });
     setNewWorkTitle("");
+    setAddOpen(false);
   }
 
   function setItemStatus(item: DailyBreadSourceItem, status: DailyBreadItemStatus) {
@@ -140,151 +145,106 @@ export function DailyBreadPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        eyebrow="Daily Bread"
+        eyebrow={formatShortDate(today)}
         title="What needs carrying today?"
         actions={
-          <>
-            <LinkButton to="/huddle" variant="secondary">
-              <HandHeart size={18} />
-              Weekly Huddle
-            </LinkButton>
-            <LinkButton to="/chores/today" variant="secondary">
-              <Check size={18} />
-              Chores
-            </LinkButton>
-          </>
-        }
-      >
-        <p>Here’s what this household needs to carry today.</p>
-      </PageHeader>
-
-      <section className="focus-band rhythm-focus">
-        <div>
-          <p className="eyebrow">{formatShortDate(today)}</p>
-          <h2>{noteForm.todayFocus.trim() || "Choose the day’s focus"}</h2>
-          <p>
-            {dailyItems.length} open signal{dailyItems.length === 1 ? "" : "s"} · {doneCount} done · {carriedCount} carried
-          </p>
-        </div>
-        <div className="focus-actions">
           <Button type="button" onClick={() => huddle.completeDailyBread(today)} variant={entry?.completedAt ? "secondary" : "primary"}>
             <Wheat size={18} />
             {entry?.completedAt ? "Completed" : "Close today"}
           </Button>
-        </div>
-      </section>
+        }
+      >
+        <input
+          className="daily-focus-input"
+          value={focusValue}
+          onChange={(event) => setFocusValue(event.target.value)}
+          onBlur={saveFocus}
+          placeholder="Set today's focus"
+        />
+      </PageHeader>
 
-      <section className="summary-strip" aria-label="Daily Bread summary">
-        <div>
-          <span>Owned work</span>
-          <strong>{huddle.data.ownedWorkItems.filter((item) => item.status === "open" || item.status === "carried").length}</strong>
-          <small>Open or carried</small>
+      {dailyItems.length === 0 ? (
+        <EmptyState title="The day is quiet" action={<Wheat size={24} />}>
+          No due chores, care reminders, garden dates, use-soon pantry notes, preservation sessions, or carry-forward work surfaced for today.
+        </EmptyState>
+      ) : (
+        <div className="compact-list daily-bread-list" aria-label="Today's carry list">
+          {sortedItems.map((item) => (
+            <DailyBreadCard key={`${item.sourceType}:${item.sourceId || item.title}`} item={item} onStatus={setItemStatus} />
+          ))}
         </div>
-        <div>
-          <span>Chores</span>
-          <strong>{dailyItems.filter((item) => item.group === "chores").length}</strong>
-          <small>Due today</small>
-        </div>
-        <div>
-          <span>Animal care</span>
-          <strong>{animalCareCount}</strong>
-          <small>Due reminders</small>
-        </div>
-        <div>
-          <span>Pantry</span>
-          <strong>{useSoonCount}</strong>
-          <small>Use soon</small>
-        </div>
-      </section>
+      )}
 
-      <section className="split-layout">
-        <div className="page-stack">
-          <form className="form-panel rhythm-inline-form" onSubmit={addOwnedWork}>
-            <div className="section-heading">
-              <p className="eyebrow">Owned work</p>
-              <h2>Add something for today</h2>
-            </div>
-            <div className="form-grid">
-              <label>
-                Work
-                <input value={newWorkTitle} onChange={(event) => setNewWorkTitle(event.target.value)} placeholder="Call the hay supplier" />
-              </label>
-              <label>
-                Owner
-                <select value={newWorkOwner} onChange={(event) => setNewWorkOwner(event.target.value)}>
-                  <option value="">Household</option>
-                  {chores.members.map((member) => (
-                    <option value={member.id} key={member.id}>
-                      {member.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <Button type="submit">
-              <Plus size={18} />
-              Add work
-            </Button>
-          </form>
+      <p className="muted daily-bread-tally">
+        {doneCount} done · {carriedCount} carried
+      </p>
 
-          {dailyItems.length === 0 ? (
-            <EmptyState title="The day is quiet" action={<Wheat size={24} />}>
-              No due chores, care reminders, garden dates, use-soon pantry notes, preservation sessions, or carry-forward work surfaced for today.
-            </EmptyState>
-          ) : (
-            <section className="rhythm-section-grid" aria-label="Daily Bread work">
-              {grouped.map((section) => (
-                <article className="pantry-panel" key={section.group}>
-                  <div className="section-heading">
-                    <p className="eyebrow">{groupLabels[section.group]}</p>
-                    <h2>{section.items.length} to carry</h2>
-                  </div>
-                  <div className="compact-list">
-                    {section.items.map((item) => (
-                      <DailyBreadCard key={`${item.sourceType}:${item.sourceId || item.title}`} item={item} onStatus={setItemStatus} />
-                    ))}
-                  </div>
-                </article>
-              ))}
-            </section>
-          )}
-        </div>
-
-        <form className="form-panel rhythm-notes-panel" onSubmit={saveNotes}>
-          <div className="section-heading">
-            <p className="eyebrow">Household note</p>
-            <h2>Today’s center</h2>
+      {addOpen ? (
+        <form className="form-panel rhythm-inline-form" onSubmit={addOwnedWork}>
+          <div className="form-grid">
+            <label>
+              Work
+              <input autoFocus value={newWorkTitle} onChange={(event) => setNewWorkTitle(event.target.value)} placeholder="Call the hay supplier" />
+            </label>
+            <label>
+              Owner
+              <select value={newWorkOwner} onChange={(event) => setNewWorkOwner(event.target.value)}>
+                <option value="">Household</option>
+                {chores.members.map((member) => (
+                  <option value={member.id} key={member.id}>
+                    {member.name}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
-          <label>
-            Focus
-            <input value={noteForm.todayFocus} onChange={(event) => setNoteForm((current) => ({ ...current, todayFocus: event.target.value }))} />
-          </label>
+          <div className="button-row">
+            <Button type="submit">Add</Button>
+            <Button type="button" variant="secondary" onClick={() => setAddOpen(false)}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      ) : (
+        <Button type="button" variant="secondary" onClick={() => setAddOpen(true)}>
+          <Plus size={18} />
+          Add something
+        </Button>
+      )}
+
+      <details className="rhythm-disclosure">
+        <summary>Evening note</summary>
+        <form
+          className="form-panel"
+          onSubmit={(event) => {
+            event.preventDefault();
+            saveNotes();
+          }}
+        >
           <label>
             Note
-            <textarea rows={3} value={noteForm.householdNote} onChange={(event) => setNoteForm((current) => ({ ...current, householdNote: event.target.value }))} />
+            <textarea rows={2} value={noteForm.householdNote} onChange={(event) => setNoteForm((current) => ({ ...current, householdNote: event.target.value }))} onBlur={saveNotes} />
           </label>
           <label>
             Gratitude
-            <textarea rows={3} value={noteForm.gratitude} onChange={(event) => setNoteForm((current) => ({ ...current, gratitude: event.target.value }))} />
+            <textarea rows={2} value={noteForm.gratitude} onChange={(event) => setNoteForm((current) => ({ ...current, gratitude: event.target.value }))} onBlur={saveNotes} />
           </label>
           <label>
             Prayer or reflection
-            <textarea rows={3} value={noteForm.prayerOrReflection} onChange={(event) => setNoteForm((current) => ({ ...current, prayerOrReflection: event.target.value }))} />
+            <textarea rows={2} value={noteForm.prayerOrReflection} onChange={(event) => setNoteForm((current) => ({ ...current, prayerOrReflection: event.target.value }))} onBlur={saveNotes} />
           </label>
-          <Button type="submit">
-            <Check size={18} />
-            Save note
-          </Button>
         </form>
-      </section>
+      </details>
     </div>
   );
 }
 
 function DailyBreadCard({ item, onStatus }: { item: DailyBreadSourceItem; onStatus: (item: DailyBreadSourceItem, status: DailyBreadItemStatus) => void }) {
+  const menuRef = useRef<HTMLDetailsElement>(null);
   return (
     <article className={`rhythm-item rhythm-item-${item.status}`}>
       <div>
+        <span className="daily-bread-badge">{groupLabels[item.group]}</span>
         <strong>{item.title}</strong>
         <span>{item.detail}</span>
         {item.dueDate ? <small>{formatShortDate(item.dueDate)}</small> : null}
@@ -293,17 +253,32 @@ function DailyBreadCard({ item, onStatus }: { item: DailyBreadSourceItem; onStat
         <Button className="icon-button" type="button" variant={item.status === "done" ? "primary" : "secondary"} onClick={() => onStatus(item, "done")} title="Done">
           <Check size={17} />
         </Button>
-        <Button className="icon-button" type="button" variant={item.status === "skipped" ? "primary" : "secondary"} onClick={() => onStatus(item, "skipped")} title="Skipped">
-          <CircleSlash size={17} />
-        </Button>
         <Button className="icon-button" type="button" variant={item.status === "carried" ? "primary" : "secondary"} onClick={() => onStatus(item, "carried")} title="Carry">
           <CornerUpRight size={17} />
         </Button>
-        {item.href ? (
-          <Link to={item.href} className="button button-ghost icon-button" title="Open">
-            <Plus size={17} />
-          </Link>
-        ) : null}
+        <details className="daily-bread-overflow" ref={menuRef}>
+          <summary className="icon-button button button-ghost" aria-label="More actions">
+            <MoreHorizontal size={17} />
+          </summary>
+          <div className="daily-bread-overflow-menu">
+            <button
+              type="button"
+              onClick={() => {
+                onStatus(item, "skipped");
+                menuRef.current?.removeAttribute("open");
+              }}
+            >
+              <CircleSlash size={16} />
+              Skip
+            </button>
+            {item.href ? (
+              <Link to={item.href}>
+                <Plus size={16} />
+                Open
+              </Link>
+            ) : null}
+          </div>
+        </details>
       </div>
     </article>
   );

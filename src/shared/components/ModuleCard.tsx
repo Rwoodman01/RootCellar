@@ -11,12 +11,7 @@ export function ModuleCard({ module }: { module: RootcellarModule }) {
         <Icon size={22} />
       </div>
       <div>
-        <div className="module-card-heading">
-          <h2>{module.name}</h2>
-          <span>{module.status === "active" ? "Open" : "Coming soon"}</span>
-        </div>
-        <p>{module.promise}</p>
-        <small>{module.detail}</small>
+        <h2>{module.name}</h2>
       </div>
       <ArrowRight size={18} aria-hidden="true" />
     </Link>

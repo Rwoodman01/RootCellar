@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import type { RootcellarModule } from "./shared/types/modules";
 
-export const rootcellarModules: RootcellarModule[] = [
+export const rootcellarRhythm: RootcellarModule[] = [
   {
     id: "daily-bread",
     name: "Daily Bread",
@@ -20,6 +20,18 @@ export const rootcellarModules: RootcellarModule[] = [
     detail: "Owned work, due chores, care, garden, pantry, preservation, and reflection.",
     icon: Wheat,
   },
+  {
+    id: "huddle",
+    name: "Weekly Huddle",
+    path: "/huddle",
+    status: "active",
+    promise: "Around the table: what worked, what slipped, and what needs carrying next.",
+    detail: "Pulse, priorities, owned work, stuck list, decisions, and next week focus.",
+    icon: HandHeart,
+  },
+];
+
+export const rootcellarRooms: RootcellarModule[] = [
   {
     id: "preservation",
     name: "Preservation",
@@ -65,25 +77,21 @@ export const rootcellarModules: RootcellarModule[] = [
     detail: "Fixed, decay, condition, season-anchored, and burst/project work.",
     icon: ClipboardCheck,
   },
-  {
-    id: "huddle",
-    name: "Weekly Huddle",
-    path: "/huddle",
-    status: "active",
-    promise: "Around the table: what worked, what slipped, and what needs carrying next.",
-    detail: "Pulse, priorities, owned work, stuck list, decisions, and next week focus.",
-    icon: HandHeart,
-  },
+];
+
+export const rootcellarHidden: RootcellarModule[] = [
   {
     id: "ask",
     name: "Ask Rootcellar",
     path: "/ask",
-    status: "coming-soon",
+    status: "hidden",
     promise: "Answers over your own household records.",
     detail: "Not built yet. No AI in alpha.",
     icon: MessageCircle,
   },
 ];
+
+export const rootcellarModules: RootcellarModule[] = [...rootcellarRhythm, ...rootcellarRooms, ...rootcellarHidden];
 
 export function findModuleByPath(pathname: string): RootcellarModule | undefined {
   return rootcellarModules.find((module) => pathname === module.path);

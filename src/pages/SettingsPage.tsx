@@ -22,7 +22,7 @@ export function SettingsPage() {
     if (!confirmed) return;
 
     clearRootcellarData();
-    window.location.assign("/dashboard");
+    window.location.assign("/");
   };
   const handleResetOpening = () => {
     const current = loadRootcellarData();
@@ -54,7 +54,7 @@ export function SettingsPage() {
             <li>Garden beds, plantings, harvests, seed packets, and frost settings</li>
             <li>Animal groups, individuals, events, care reminders, feed, and production</li>
             <li>Chores with fixed, decay, condition, season-anchored, and burst recurrence</li>
-            <li>Family members, Kid Mode, skip reasons, and Weekly Chore Review</li>
+            <li>Family members and skip reasons</li>
             <li>Daily Bread and Weekly Huddle</li>
             <li>Local browser persistence</li>
           </ul>

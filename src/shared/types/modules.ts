@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 
-export type ModuleStatus = "active" | "coming-soon";
+export type ModuleStatus = "active" | "coming-soon" | "hidden";
 
 export interface RootcellarModule {
   id: string;

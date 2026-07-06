@@ -1,5 +1,5 @@
-import { CalendarDays, Check, CircleSlash, CornerUpRight, HandHeart, Plus } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { ArrowLeft, ArrowRight, Check, CircleSlash, CornerUpRight, HandHeart, Plus } from "lucide-react";
+import { useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Button, LinkButton } from "../../../shared/components/Button";
 import { EmptyState } from "../../../shared/components/EmptyState";
@@ -25,6 +25,7 @@ import { useHuddle } from "../useHuddle";
 const priorityStatuses: SeasonPriorityStatus[] = ["on_track", "off_track", "done", "paused"];
 const priorityModules: PriorityLinkedModule[] = ["manual", "preservation", "pantry", "garden", "animals", "chores"];
 const pulseStatuses: PulseMetricStatus[] = ["good", "watch", "needs_attention"];
+const stepLabels = ["Check in", "Pulse", "What slipped", "Who owns what", "Next week"];
 
 export function WeeklyHuddlePage() {
   const huddle = useHuddle();
@@ -35,14 +36,17 @@ export function WeeklyHuddlePage() {
   const { plans } = usePreservationPlans();
   const { weekStart, weekEnd } = getWeekRange(todayDate());
   const entry = huddle.data.weeklyHuddleEntries.find((item) => item.weekStart === weekStart);
+
+  const [step, setStep] = useState(() => {
+    const flags = [entry?.pulseReviewed, entry?.stuckListReviewed, entry?.ownedWorkReviewed, entry?.prioritiesReviewed];
+    const firstUnreviewed = flags.findIndex((flag) => !flag);
+    return firstUnreviewed === -1 ? 0 : firstUnreviewed + 1;
+  });
+
   const [notesForm, setNotesForm] = useState({
     wins: entry?.wins.join("\n") || "",
-    pulseNotes: entry?.pulseNotes || "",
-    priorityNotes: entry?.priorityNotes || "",
-    stuckItems: entry?.stuckItems.join("\n") || "",
     decisions: entry?.decisions.join("\n") || "",
     nextWeekFocus: entry?.nextWeekFocus.join("\n") || "",
-    carryForwardItems: entry?.carryForwardItems.join("\n") || "",
   });
   const [priorityForm, setPriorityForm] = useState({ title: "", ownerMemberId: "", targetDate: "", linkedModule: "manual" as PriorityLinkedModule });
   const [workForm, setWorkForm] = useState({ title: "", ownerMemberId: "", dueDate: addDays(weekEnd, 1) });
@@ -57,31 +61,14 @@ export function WeeklyHuddlePage() {
   const signals = useMemo(() => getWeeklySignals(source), [source]);
   const openWork = huddle.data.ownedWorkItems.filter((item) => item.status === "open" || item.status === "carried");
   const openStuck = huddle.data.stuckItems.filter((item) => item.status === "open" || item.status === "carried");
-  const activePriorities = huddle.data.seasonPriorities.filter((priority) => priority.status !== "done");
-  const pulseNeedsAttention = pulse.filter((metric) => metric.status === "needs_attention").length;
+  const lastWeekEntries = huddle.data.dailyBreadEntries.filter((item) => item.date >= weekStart && item.date <= weekEnd && (item.todayFocus || item.gratitude));
 
-  useEffect(() => {
-    setNotesForm({
-      wins: entry?.wins.join("\n") || "",
-      pulseNotes: entry?.pulseNotes || "",
-      priorityNotes: entry?.priorityNotes || "",
-      stuckItems: entry?.stuckItems.join("\n") || "",
-      decisions: entry?.decisions.join("\n") || "",
-      nextWeekFocus: entry?.nextWeekFocus.join("\n") || "",
-      carryForwardItems: entry?.carryForwardItems.join("\n") || "",
-    });
-  }, [entry?.weekStart, entry?.wins, entry?.pulseNotes, entry?.priorityNotes, entry?.stuckItems, entry?.decisions, entry?.nextWeekFocus, entry?.carryForwardItems]);
-
-  function saveNotes(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function commitNotes(next: Partial<typeof notesForm> = {}) {
+    const merged = { ...notesForm, ...next };
     huddle.updateWeeklyHuddle(weekStart, weekEnd, {
-      wins: lines(notesForm.wins),
-      pulseNotes: notesForm.pulseNotes,
-      priorityNotes: notesForm.priorityNotes,
-      stuckItems: lines(notesForm.stuckItems),
-      decisions: lines(notesForm.decisions),
-      nextWeekFocus: lines(notesForm.nextWeekFocus),
-      carryForwardItems: lines(notesForm.carryForwardItems),
+      wins: lines(merged.wins),
+      decisions: lines(merged.decisions),
+      nextWeekFocus: lines(merged.nextWeekFocus),
     });
   }
 
@@ -151,7 +138,7 @@ export function WeeklyHuddlePage() {
     <div className="page-stack">
       <PageHeader
         eyebrow="Weekly Huddle"
-        title="What worked, what slipped, and what needs carrying next?"
+        title={stepLabels[step]}
         actions={
           <>
             <LinkButton to="/daily-bread" variant="secondary">
@@ -165,336 +152,314 @@ export function WeeklyHuddlePage() {
           </>
         }
       >
-        <p>Around the table: what worked, what slipped, and what needs carrying next.</p>
+        <p>
+          {formatShortDate(weekStart)} to {formatShortDate(weekEnd)} · around the table
+        </p>
       </PageHeader>
 
-      <section className="focus-band rhythm-focus">
-        <div>
-          <p className="eyebrow">
-            {formatShortDate(weekStart)} to {formatShortDate(weekEnd)}
-          </p>
-          <h2>{signals.length ? `${signals.length} thing${signals.length === 1 ? "" : "s"} need a look` : "The week is steady"}</h2>
-          <p>
-            {activePriorities.length} season priorit{activePriorities.length === 1 ? "y" : "ies"} · {openWork.length} open work · {openStuck.length} stuck
-          </p>
-        </div>
-        <CalendarDays size={28} />
-      </section>
+      <nav className="huddle-steps" aria-label="Huddle steps">
+        {stepLabels.map((label, index) => (
+          <button key={label} type="button" className={index === step ? "active" : undefined} onClick={() => setStep(index)}>
+            <span>{index + 1}</span>
+            {label}
+          </button>
+        ))}
+      </nav>
 
-      <section className="summary-strip" aria-label="Weekly Huddle summary">
-        <div>
-          <span>Pulse</span>
-          <strong>{pulseNeedsAttention}</strong>
-          <small>Need attention</small>
-        </div>
-        <div>
-          <span>Big rocks</span>
-          <strong>{activePriorities.length}</strong>
-          <small>Active priorities</small>
-        </div>
-        <div>
-          <span>Owned work</span>
-          <strong>{openWork.length}</strong>
-          <small>Open or carried</small>
-        </div>
-        <div>
-          <span>Stuck list</span>
-          <strong>{openStuck.length}</strong>
-          <small>Needs attention</small>
-        </div>
-      </section>
-
-      <section className="split-layout">
-        <div className="page-stack">
-          <section className="pantry-panel">
-            <ReviewHeader
-              eyebrow="Pulse"
-              title="How the household is running"
-              checked={Boolean(entry?.pulseReviewed)}
-              onChange={(value) => updateReviewFlag("pulseReviewed", value)}
+      {step === 0 ? (
+        <section className="pantry-panel">
+          <div className="section-heading">
+            <p className="eyebrow">Last week</p>
+            <h2>What worked?</h2>
+          </div>
+          <div className="compact-list">
+            {lastWeekEntries.length ? (
+              lastWeekEntries.map((item) => (
+                <div className="compact-row" key={item.id}>
+                  <strong>{formatShortDate(item.date)}</strong>
+                  <span>{item.todayFocus || "No focus set"}</span>
+                  {item.gratitude ? <small>{item.gratitude}</small> : null}
+                </div>
+              ))
+            ) : (
+              <p className="muted">No daily notes were left this week.</p>
+            )}
+          </div>
+          <label>
+            Wins
+            <textarea
+              rows={3}
+              value={notesForm.wins}
+              onChange={(event) => setNotesForm((current) => ({ ...current, wins: event.target.value }))}
+              onBlur={() => commitNotes()}
+              placeholder="What went right this week?"
             />
-            <div className="rhythm-metric-grid">
-              {pulse.map((metric) => (
-                <PulseCard metric={metric} key={metric.id} />
+          </label>
+        </section>
+      ) : null}
+
+      {step === 1 ? (
+        <section className="pantry-panel">
+          <ReviewHeader eyebrow="Pulse" title="How the household is running" checked={Boolean(entry?.pulseReviewed)} onChange={(value) => updateReviewFlag("pulseReviewed", value)} />
+          <div className="rhythm-metric-grid">
+            {pulse.map((metric) => (
+              <PulseCard metric={metric} key={metric.id} />
+            ))}
+          </div>
+          <details className="rhythm-disclosure">
+            <summary>+ Add a household number</summary>
+            <form className="rhythm-inline-form" onSubmit={addPulse}>
+              <label>
+                Title
+                <input value={pulseForm.title} onChange={(event) => setPulseForm((current) => ({ ...current, title: event.target.value }))} />
+              </label>
+              <div className="form-grid">
+                <label>
+                  Value
+                  <input value={pulseForm.value} onChange={(event) => setPulseForm((current) => ({ ...current, value: event.target.value }))} />
+                </label>
+                <label>
+                  Target
+                  <input value={pulseForm.target} onChange={(event) => setPulseForm((current) => ({ ...current, target: event.target.value }))} />
+                </label>
+                <label>
+                  Unit
+                  <input value={pulseForm.unit} onChange={(event) => setPulseForm((current) => ({ ...current, unit: event.target.value }))} />
+                </label>
+                <label>
+                  Status
+                  <select value={pulseForm.status} onChange={(event) => setPulseForm((current) => ({ ...current, status: event.target.value as PulseMetricStatus }))}>
+                    {pulseStatuses.map((status) => (
+                      <option value={status} key={status}>
+                        {statusLabel(status)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <Button type="submit">
+                <Plus size={18} />
+                Add pulse
+              </Button>
+            </form>
+          </details>
+        </section>
+      ) : null}
+
+      {step === 2 ? (
+        <section className="pantry-panel">
+          <ReviewHeader eyebrow="What slipped" title="Name it, sort it, decide" checked={Boolean(entry?.stuckListReviewed)} onChange={(value) => updateReviewFlag("stuckListReviewed", value)} />
+          {signals.length ? (
+            <div className="compact-list">
+              {signals.map((signal) => (
+                <SignalRow
+                  key={signal.id}
+                  signal={signal}
+                  onCarry={() =>
+                    huddle.addStuckItem({
+                      title: signal.title,
+                      details: signal.detail,
+                      sourceType: stuckSourceFromModule(signal.sourceType),
+                      sourceId: signal.id,
+                      status: "open",
+                      decision: "",
+                    })
+                  }
+                />
               ))}
             </div>
-          </section>
+          ) : (
+            <EmptyState title="No slipping signals" action={<Check size={24} />}>
+              The connected rooms are quiet for this week.
+            </EmptyState>
+          )}
 
-          <section className="pantry-panel">
-            <ReviewHeader
-              eyebrow="Season priorities"
-              title="Big rocks"
-              checked={Boolean(entry?.prioritiesReviewed)}
-              onChange={(value) => updateReviewFlag("prioritiesReviewed", value)}
-            />
-            <form className="rhythm-inline-form" onSubmit={addPriority}>
-              <div className="form-grid">
-                <label>
-                  Priority
-                  <input value={priorityForm.title} onChange={(event) => setPriorityForm((current) => ({ ...current, title: event.target.value }))} />
-                </label>
-                <label>
-                  Owner
-                  <select value={priorityForm.ownerMemberId} onChange={(event) => setPriorityForm((current) => ({ ...current, ownerMemberId: event.target.value }))}>
-                    <option value="">Household</option>
-                    {chores.members.map((member) => (
-                      <option value={member.id} key={member.id}>
-                        {member.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Linked room
-                  <select value={priorityForm.linkedModule} onChange={(event) => setPriorityForm((current) => ({ ...current, linkedModule: event.target.value as PriorityLinkedModule }))}>
-                    {priorityModules.map((module) => (
-                      <option value={module} key={module}>
-                        {moduleLabel(module)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Target date
-                  <input type="date" value={priorityForm.targetDate} onChange={(event) => setPriorityForm((current) => ({ ...current, targetDate: event.target.value }))} />
-                </label>
-              </div>
-              <Button type="submit">
-                <Plus size={18} />
-                Add priority
-              </Button>
-            </form>
-            <div className="compact-list">
-              {huddle.data.seasonPriorities.length ? (
-                huddle.data.seasonPriorities.map((priority) => (
-                  <PriorityRow key={priority.id} priority={priority} members={chores.members} onUpdate={(next) => huddle.updateSeasonPriority(priority.id, next)} />
-                ))
-              ) : (
-                <p className="muted">No season priorities yet.</p>
-              )}
-            </div>
-          </section>
-
-          <section className="pantry-panel">
-            <ReviewHeader
-              eyebrow="Owned work"
-              title="Who owns what next"
-              checked={Boolean(entry?.ownedWorkReviewed)}
-              onChange={(value) => updateReviewFlag("ownedWorkReviewed", value)}
-            />
-            <form className="rhythm-inline-form" onSubmit={addWork}>
-              <div className="form-grid">
-                <label>
-                  Work
-                  <input value={workForm.title} onChange={(event) => setWorkForm((current) => ({ ...current, title: event.target.value }))} />
-                </label>
-                <label>
-                  Owner
-                  <select value={workForm.ownerMemberId} onChange={(event) => setWorkForm((current) => ({ ...current, ownerMemberId: event.target.value }))}>
-                    <option value="">Household</option>
-                    {chores.members.map((member) => (
-                      <option value={member.id} key={member.id}>
-                        {member.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Due
-                  <input type="date" value={workForm.dueDate} onChange={(event) => setWorkForm((current) => ({ ...current, dueDate: event.target.value }))} />
-                </label>
-              </div>
-              <Button type="submit">
-                <Plus size={18} />
-                Add work
-              </Button>
-            </form>
-            <div className="compact-list">
-              {openWork.length ? (
-                openWork.map((item) => (
-                  <OwnedWorkRow
-                    key={item.id}
-                    item={item}
-                    members={chores.members}
-                    onDone={() => huddle.updateOwnedWorkStatus(item.id, "done")}
-                    onCarry={() =>
-                      huddle.updateOwnedWorkItem(item.id, {
-                        ...item,
-                        status: "carried",
-                        dueDate: item.dueDate || addDays(weekEnd, 1),
-                      })
-                    }
-                    onDrop={() => huddle.updateOwnedWorkStatus(item.id, "dropped")}
-                  />
-                ))
-              ) : (
-                <p className="muted">No open owned work.</p>
-              )}
-            </div>
-          </section>
-
-          <section className="pantry-panel">
-            <ReviewHeader
-              eyebrow="Needs attention"
-              title="Name what is stuck"
-              checked={Boolean(entry?.stuckListReviewed)}
-              onChange={(value) => updateReviewFlag("stuckListReviewed", value)}
-            />
-            <form className="rhythm-inline-form" onSubmit={addStuck}>
-              <div className="form-grid">
-                <label>
-                  Stuck item
-                  <input value={stuckForm.title} onChange={(event) => setStuckForm((current) => ({ ...current, title: event.target.value }))} />
-                </label>
-                <label>
-                  Owner
-                  <select value={stuckForm.ownerMemberId} onChange={(event) => setStuckForm((current) => ({ ...current, ownerMemberId: event.target.value }))}>
-                    <option value="">Household</option>
-                    {chores.members.map((member) => (
-                      <option value={member.id} key={member.id}>
-                        {member.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <label>
-                Details
-                <textarea rows={2} value={stuckForm.details} onChange={(event) => setStuckForm((current) => ({ ...current, details: event.target.value }))} />
-              </label>
-              <Button type="submit">
-                <Plus size={18} />
-                Add stuck item
-              </Button>
-            </form>
-            <div className="compact-list">
-              {openStuck.length ? (
-                openStuck.map((item) => (
-                  <StuckRow
-                    key={item.id}
-                    item={item}
-                    members={chores.members}
-                    onStatus={(status) => huddle.updateStuckItem(item.id, { ...item, status })}
-                  />
-                ))
-              ) : (
-                <p className="muted">Nothing is on the stuck list.</p>
-              )}
-            </div>
-          </section>
-
-          <section className="pantry-panel">
-            <div className="section-heading">
-              <p className="eyebrow">Module signals</p>
-              <h2>What slipped or needs a look</h2>
-            </div>
-            {signals.length ? (
-              <div className="compact-list">
-                {signals.map((signal) => (
-                  <SignalRow
-                    key={signal.id}
-                    signal={signal}
-                    onCarry={() =>
-                      huddle.addStuckItem({
-                        title: signal.title,
-                        details: signal.detail,
-                        sourceType: stuckSourceFromModule(signal.sourceType),
-                        sourceId: signal.id,
-                        status: "open",
-                        decision: "",
-                      })
-                    }
-                  />
-                ))}
-              </div>
-            ) : (
-              <EmptyState title="No slipping signals" action={<Check size={24} />}>
-                The connected rooms are quiet for this week.
-              </EmptyState>
-            )}
-          </section>
-        </div>
-
-        <div className="page-stack">
-          <form className="form-panel rhythm-notes-panel" onSubmit={saveNotes}>
-            <div className="section-heading">
-              <p className="eyebrow">Around the table</p>
-              <h2>Notes and decisions</h2>
-            </div>
-            <label>
-              Wins
-              <textarea rows={3} value={notesForm.wins} onChange={(event) => setNotesForm((current) => ({ ...current, wins: event.target.value }))} />
-            </label>
-            <label>
-              Pulse notes
-              <textarea rows={3} value={notesForm.pulseNotes} onChange={(event) => setNotesForm((current) => ({ ...current, pulseNotes: event.target.value }))} />
-            </label>
-            <label>
-              Priority notes
-              <textarea rows={3} value={notesForm.priorityNotes} onChange={(event) => setNotesForm((current) => ({ ...current, priorityNotes: event.target.value }))} />
-            </label>
-            <label>
-              Stuck list notes
-              <textarea rows={3} value={notesForm.stuckItems} onChange={(event) => setNotesForm((current) => ({ ...current, stuckItems: event.target.value }))} />
-            </label>
-            <label>
-              Decisions
-              <textarea rows={3} value={notesForm.decisions} onChange={(event) => setNotesForm((current) => ({ ...current, decisions: event.target.value }))} />
-            </label>
-            <label>
-              Next week focus
-              <textarea rows={3} value={notesForm.nextWeekFocus} onChange={(event) => setNotesForm((current) => ({ ...current, nextWeekFocus: event.target.value }))} />
-            </label>
-            <label>
-              Carries into next week
-              <textarea rows={3} value={notesForm.carryForwardItems} onChange={(event) => setNotesForm((current) => ({ ...current, carryForwardItems: event.target.value }))} />
-            </label>
-            <Button type="submit">
-              <Check size={18} />
-              Save huddle
-            </Button>
-          </form>
-
-          <form className="form-panel rhythm-inline-form" onSubmit={addPulse}>
-            <div className="section-heading">
-              <p className="eyebrow">Manual pulse</p>
-              <h2>Add a household number</h2>
-            </div>
-            <label>
-              Title
-              <input value={pulseForm.title} onChange={(event) => setPulseForm((current) => ({ ...current, title: event.target.value }))} />
-            </label>
+          <div className="section-heading">
+            <p className="eyebrow">Stuck list</p>
+            <h2>Decided or still open</h2>
+          </div>
+          <form className="rhythm-inline-form" onSubmit={addStuck}>
             <div className="form-grid">
               <label>
-                Value
-                <input value={pulseForm.value} onChange={(event) => setPulseForm((current) => ({ ...current, value: event.target.value }))} />
+                Stuck item
+                <input value={stuckForm.title} onChange={(event) => setStuckForm((current) => ({ ...current, title: event.target.value }))} />
               </label>
               <label>
-                Target
-                <input value={pulseForm.target} onChange={(event) => setPulseForm((current) => ({ ...current, target: event.target.value }))} />
-              </label>
-              <label>
-                Unit
-                <input value={pulseForm.unit} onChange={(event) => setPulseForm((current) => ({ ...current, unit: event.target.value }))} />
-              </label>
-              <label>
-                Status
-                <select value={pulseForm.status} onChange={(event) => setPulseForm((current) => ({ ...current, status: event.target.value as PulseMetricStatus }))}>
-                  {pulseStatuses.map((status) => (
-                    <option value={status} key={status}>
-                      {statusLabel(status)}
+                Owner
+                <select value={stuckForm.ownerMemberId} onChange={(event) => setStuckForm((current) => ({ ...current, ownerMemberId: event.target.value }))}>
+                  <option value="">Household</option>
+                  {chores.members.map((member) => (
+                    <option value={member.id} key={member.id}>
+                      {member.name}
                     </option>
                   ))}
                 </select>
               </label>
             </div>
+            <label>
+              Details
+              <textarea rows={2} value={stuckForm.details} onChange={(event) => setStuckForm((current) => ({ ...current, details: event.target.value }))} />
+            </label>
             <Button type="submit">
               <Plus size={18} />
-              Add pulse
+              Add stuck item
             </Button>
           </form>
-        </div>
-      </section>
+          <div className="compact-list">
+            {openStuck.length ? (
+              openStuck.map((item) => (
+                <StuckRow key={item.id} item={item} members={chores.members} onStatus={(status) => huddle.updateStuckItem(item.id, { ...item, status })} />
+              ))
+            ) : (
+              <p className="muted">Nothing is on the stuck list.</p>
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {step === 3 ? (
+        <section className="pantry-panel">
+          <ReviewHeader eyebrow="Owned work" title="Who owns what next" checked={Boolean(entry?.ownedWorkReviewed)} onChange={(value) => updateReviewFlag("ownedWorkReviewed", value)} />
+          <form className="rhythm-inline-form" onSubmit={addWork}>
+            <div className="form-grid">
+              <label>
+                Work
+                <input value={workForm.title} onChange={(event) => setWorkForm((current) => ({ ...current, title: event.target.value }))} />
+              </label>
+              <label>
+                Owner
+                <select value={workForm.ownerMemberId} onChange={(event) => setWorkForm((current) => ({ ...current, ownerMemberId: event.target.value }))}>
+                  <option value="">Household</option>
+                  {chores.members.map((member) => (
+                    <option value={member.id} key={member.id}>
+                      {member.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Due
+                <input type="date" value={workForm.dueDate} onChange={(event) => setWorkForm((current) => ({ ...current, dueDate: event.target.value }))} />
+              </label>
+            </div>
+            <Button type="submit">
+              <Plus size={18} />
+              Add work
+            </Button>
+          </form>
+          <div className="compact-list">
+            {openWork.length ? (
+              openWork.map((item) => (
+                <OwnedWorkRow
+                  key={item.id}
+                  item={item}
+                  members={chores.members}
+                  onDone={() => huddle.updateOwnedWorkStatus(item.id, "done")}
+                  onCarry={() =>
+                    huddle.updateOwnedWorkItem(item.id, {
+                      ...item,
+                      status: "carried",
+                      dueDate: item.dueDate || addDays(weekEnd, 1),
+                    })
+                  }
+                  onDrop={() => huddle.updateOwnedWorkStatus(item.id, "dropped")}
+                />
+              ))
+            ) : (
+              <p className="muted">No open owned work.</p>
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {step === 4 ? (
+        <section className="pantry-panel">
+          <ReviewHeader eyebrow="Season priorities" title="Big rocks for next week" checked={Boolean(entry?.prioritiesReviewed)} onChange={(value) => updateReviewFlag("prioritiesReviewed", value)} />
+          <form className="rhythm-inline-form" onSubmit={addPriority}>
+            <div className="form-grid">
+              <label>
+                Priority
+                <input value={priorityForm.title} onChange={(event) => setPriorityForm((current) => ({ ...current, title: event.target.value }))} />
+              </label>
+              <label>
+                Owner
+                <select value={priorityForm.ownerMemberId} onChange={(event) => setPriorityForm((current) => ({ ...current, ownerMemberId: event.target.value }))}>
+                  <option value="">Household</option>
+                  {chores.members.map((member) => (
+                    <option value={member.id} key={member.id}>
+                      {member.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Linked room
+                <select value={priorityForm.linkedModule} onChange={(event) => setPriorityForm((current) => ({ ...current, linkedModule: event.target.value as PriorityLinkedModule }))}>
+                  {priorityModules.map((module) => (
+                    <option value={module} key={module}>
+                      {moduleLabel(module)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Target date
+                <input type="date" value={priorityForm.targetDate} onChange={(event) => setPriorityForm((current) => ({ ...current, targetDate: event.target.value }))} />
+              </label>
+            </div>
+            <Button type="submit">
+              <Plus size={18} />
+              Add priority
+            </Button>
+          </form>
+          <div className="compact-list">
+            {huddle.data.seasonPriorities.length ? (
+              huddle.data.seasonPriorities.map((priority) => (
+                <PriorityRow key={priority.id} priority={priority} members={chores.members} onUpdate={(next) => huddle.updateSeasonPriority(priority.id, next)} />
+              ))
+            ) : (
+              <p className="muted">No season priorities yet.</p>
+            )}
+          </div>
+
+          <label>
+            Decisions made today
+            <textarea
+              rows={3}
+              value={notesForm.decisions}
+              onChange={(event) => setNotesForm((current) => ({ ...current, decisions: event.target.value }))}
+              onBlur={() => commitNotes()}
+            />
+          </label>
+          <label>
+            Household focus for next week
+            <textarea
+              rows={2}
+              value={notesForm.nextWeekFocus}
+              onChange={(event) => setNotesForm((current) => ({ ...current, nextWeekFocus: event.target.value }))}
+              onBlur={() => commitNotes()}
+            />
+          </label>
+        </section>
+      ) : null}
+
+      <div className="huddle-step-nav">
+        <Button type="button" variant="secondary" onClick={() => setStep((current) => Math.max(0, current - 1))} disabled={step === 0}>
+          <ArrowLeft size={18} />
+          Back
+        </Button>
+        {step < stepLabels.length - 1 ? (
+          <Button type="button" onClick={() => setStep((current) => Math.min(stepLabels.length - 1, current + 1))}>
+            Next
+            <ArrowRight size={18} />
+          </Button>
+        ) : (
+          <Button type="button" onClick={() => huddle.completeWeeklyHuddle(weekStart, weekEnd)}>
+            <Check size={18} />
+            Close huddle
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
