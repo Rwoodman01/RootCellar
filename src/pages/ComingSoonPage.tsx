@@ -22,9 +22,9 @@ export function ComingSoonPage({ moduleId }: { moduleId: string }) {
         eyebrow="Coming soon"
         title={module.name}
         actions={
-          <LinkButton to="/dashboard" variant="secondary">
+          <LinkButton to="/homestead" variant="secondary">
             <ArrowLeft size={18} />
-            Dashboard
+            Homestead
           </LinkButton>
         }
       >
@@ -41,7 +41,7 @@ export function ComingSoonPage({ moduleId }: { moduleId: string }) {
         <p>
           This route is part of the Rootcellar V1 map, but this room is not built yet.
         </p>
-        <Link to="/dashboard">Open the dashboard</Link>
+        <Link to="/homestead">Open Homestead</Link>
       </section>
     </div>
   );
