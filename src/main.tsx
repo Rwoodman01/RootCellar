@@ -8,8 +8,11 @@ import { GardenProvider } from "./modules/garden/useGarden";
 import { AnimalsProvider } from "./modules/animals/useAnimals";
 import { ChoresProvider } from "./modules/chores/useChores";
 import { HuddleProvider } from "./modules/huddle/useHuddle";
-import { LandingPage } from "./pages/LandingPage";
-import { DashboardPage } from "./pages/DashboardPage";
+import { OnboardingProvider } from "./onboarding/useOnboarding";
+import { RootRedirect, RequireOnboarded } from "./onboarding/guards";
+import { OnboardingPage } from "./onboarding/OnboardingPage";
+import { HomesteadPage } from "./pages/HomesteadPage";
+import { QuickAddPage } from "./pages/QuickAddPage";
 import { ComingSoonPage } from "./pages/ComingSoonPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { PreservationListPage } from "./modules/preservation/pages/PreservationListPage";
@@ -65,16 +68,21 @@ document.title = "Rootcellar Alpha";
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
-      <PreservationProvider>
+      <OnboardingProvider>
+        <PreservationProvider>
         <PantryProvider>
           <GardenProvider>
             <AnimalsProvider>
               <ChoresProvider>
                 <HuddleProvider>
                   <Routes>
-                    <Route path="/" element={<LandingPage />} />
+                    <Route path="/" element={<RootRedirect />} />
+                    <Route path="/onboarding" element={<OnboardingPage />} />
+                    <Route element={<RequireOnboarded />}>
                     <Route element={<AppShell />}>
-                      <Route path="/dashboard" element={<DashboardPage />} />
+                      <Route path="/homestead" element={<HomesteadPage />} />
+                      <Route path="/dashboard" element={<Navigate to="/homestead" replace />} />
+                      <Route path="/add" element={<QuickAddPage />} />
                       <Route path="/daily-bread" element={<DailyBreadPage />} />
                       <Route path="/preservation" element={<PreservationListPage />} />
                       <Route path="/preservation/new" element={<PreservationPlanFormPage />} />
@@ -134,14 +142,16 @@ createRoot(document.getElementById("root")!).render(
                       <Route path="/ask" element={<ComingSoonPage moduleId="ask" />} />
                       <Route path="/settings" element={<SettingsPage />} />
                     </Route>
-                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                    </Route>
+                    <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </HuddleProvider>
               </ChoresProvider>
             </AnimalsProvider>
           </GardenProvider>
         </PantryProvider>
-      </PreservationProvider>
+        </PreservationProvider>
+      </OnboardingProvider>
     </BrowserRouter>
   </StrictMode>,
 );

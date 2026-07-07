@@ -5,6 +5,8 @@ import { Button, LinkButton } from "../../../shared/components/Button";
 import { EmptyState } from "../../../shared/components/EmptyState";
 import { PageHeader } from "../../../shared/components/PageHeader";
 import { formatShortDate } from "../../../shared/utils/dates";
+import { OnboardingResumeBanner } from "../../../onboarding/OnboardingResumeBanner";
+import { confirmAndLoadSampleHomestead } from "../../../shared/storage/sampleHomestead";
 import { dueCareReminders } from "../../animals/animalUtils";
 import { useAnimals } from "../../animals/useAnimals";
 import { useChores } from "../../chores/useChores";
@@ -76,17 +78,13 @@ export function DailyBreadPage() {
     [animals, chores, entry?.selectedItems, garden, huddle.data, pantry, plans, today],
   );
 
-  const grouped = useMemo(
-    () =>
-      (Object.keys(groupLabels) as Array<DailyBreadSourceItem["group"]>)
-        .map((group) => ({ group, items: dailyItems.filter((item) => item.group === group) }))
-        .filter((section) => section.items.length),
-    [dailyItems],
-  );
   const doneCount = dailyItems.filter((item) => item.status === "done").length;
   const carriedCount = dailyItems.filter((item) => item.status === "carried").length;
   const animalCareCount = dueCareReminders(animals.careReminders, today).length;
   const useSoonCount = getUseSoonBatches(pantry, 14).length;
+  const hasAnyData = Boolean(
+    chores.members.length || chores.chores.length || pantry.products.length || garden.beds.length || animals.groups.length || plans.length,
+  );
 
   function saveNotes(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -139,6 +137,7 @@ export function DailyBreadPage() {
 
   return (
     <div className="page-stack">
+      <OnboardingResumeBanner />
       <PageHeader
         eyebrow="Daily Bread"
         title="What needs carrying today?"
@@ -227,26 +226,40 @@ export function DailyBreadPage() {
             </Button>
           </form>
 
-          {dailyItems.length === 0 ? (
+          {dailyItems.length === 0 && !hasAnyData ? (
+            <EmptyState title="Nothing to carry yet" action={<Wheat size={24} />}>
+              Rootcellar hasn't been given anything to remember. Add one real thing to get started.
+              <div className="button-row">
+                <LinkButton to="/chores/new" variant="secondary">
+                  Add a chore
+                </LinkButton>
+                <LinkButton to="/pantry/products/new" variant="secondary">
+                  Add pantry item
+                </LinkButton>
+                <LinkButton to="/garden/beds" variant="secondary">
+                  Add garden bed
+                </LinkButton>
+                <Button type="button" variant="ghost" onClick={() => confirmAndLoadSampleHomestead()}>
+                  Load sample homestead
+                </Button>
+              </div>
+            </EmptyState>
+          ) : dailyItems.length === 0 ? (
             <EmptyState title="The day is quiet" action={<Wheat size={24} />}>
               No due chores, care reminders, garden dates, use-soon pantry notes, preservation sessions, or carry-forward work surfaced for today.
             </EmptyState>
           ) : (
-            <section className="rhythm-section-grid" aria-label="Daily Bread work">
-              {grouped.map((section) => (
-                <article className="pantry-panel" key={section.group}>
-                  <div className="section-heading">
-                    <p className="eyebrow">{groupLabels[section.group]}</p>
-                    <h2>{section.items.length} to carry</h2>
-                  </div>
-                  <div className="compact-list">
-                    {section.items.map((item) => (
-                      <DailyBreadCard key={`${item.sourceType}:${item.sourceId || item.title}`} item={item} onStatus={setItemStatus} />
-                    ))}
-                  </div>
-                </article>
-              ))}
-            </section>
+            <article className="pantry-panel">
+              <div className="section-heading">
+                <p className="eyebrow">Today</p>
+                <h2>{dailyItems.length} to carry</h2>
+              </div>
+              <div className="compact-list">
+                {dailyItems.map((item) => (
+                  <DailyBreadCard key={`${item.sourceType}:${item.sourceId || item.title}`} item={item} onStatus={setItemStatus} />
+                ))}
+              </div>
+            </article>
           )}
         </div>
 
@@ -285,6 +298,7 @@ function DailyBreadCard({ item, onStatus }: { item: DailyBreadSourceItem; onStat
   return (
     <article className={`rhythm-item rhythm-item-${item.status}`}>
       <div>
+        <span className="rhythm-item-tag">{groupLabels[item.group]}</span>
         <strong>{item.title}</strong>
         <span>{item.detail}</span>
         {item.dueDate ? <small>{formatShortDate(item.dueDate)}</small> : null}

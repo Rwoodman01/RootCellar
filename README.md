@@ -4,18 +4,26 @@ Rootcellar is a household memory and rhythm app for gardeners, homesteaders, and
 
 Core promise: **Your homestead finally remembers.**
 
-This alpha is local-first and intentionally quiet. Preservation, Pantry, Garden, Animals, Chores, Daily Bread, and Weekly Huddle are functional; Ask Rootcellar remains a placeholder.
+This alpha is local-first and intentionally quiet. Preservation, Pantry, Garden, Animals, Chores, Daily Bread, and Weekly Huddle are functional; Ask Rootcellar remains a placeholder and is not surfaced in navigation.
 
-## V1 Module List
+Navigation is four tabs: **Today** (Daily Bread), **Homestead** (the rooms), **Huddle** (Weekly Huddle), and **Add** (quick links into every room).
+
+## V1 Room List
+
+Homestead rooms:
 
 - Preservation
 - Pantry
 - Garden
 - Animals
 - Chores
-- Daily Bread
+
+Rhythm flows (not rooms — these live outside Homestead):
+
+- Daily Bread (Today)
 - Weekly Huddle
-- Ask Rootcellar (coming soon)
+
+Not surfaced in V1: Ask Rootcellar (coming soon, reachable only by direct URL), Documents, Equipment.
 
 ## What Works Now
 
@@ -36,8 +44,10 @@ This alpha is local-first and intentionally quiet. Preservation, Pantry, Garden,
 - Complete chores with one tap or skip with a reason
 - Use Kid Mode for one member's trust-based chore board
 - Review by-person load, unowned chores, slipping chores, skip reasons, seasonal work, and burst projects in Weekly Chore Review
-- Use Daily Bread for today's owned work, due chores, care reminders, garden work, pantry/use-soon notes, preservation work, carry-forward items, focus, and reflection
-- Use Weekly Huddle for Pulse, season priorities, owned work, slipped module signals, stuck items, decisions, and next-week focus
+- Use Daily Bread for a single flat list of today's owned work, due chores, care reminders, garden work, pantry/use-soon notes, preservation work, carry-forward items, focus, and reflection
+- Walk Weekly Huddle as a five-step ritual: Pulse, Priorities, Owned work, Stuck list, and Close
+- First-run onboarding: choose your rooms, add household basics, create a first real record, and land on Daily Bread
+- Load (and clear) a sample homestead for a quick look around
 - Persist plans in `localStorage`
 
 ## Intentionally Not Built Yet
@@ -48,6 +58,40 @@ This alpha is local-first and intentionally quiet. Preservation, Pantry, Garden,
 - Payments
 - AI or Ask Rootcellar
 - Points, coins, streaks, allowance, parent approval queues, or push-notification nagging
+
+## Onboarding
+
+A first-time visitor is sent to `/onboarding`, a five-step flow:
+
+1. **Welcome** — start setup, skip for now, or load the sample homestead.
+2. **Choose your rooms** — select which Homestead rooms to start with (Pantry, Garden, and Chores are pre-selected).
+3. **Household basics** — optional household name, household members, and last/first frost dates.
+4. **First useful memory** — one quick-add form per selected room (pantry item, garden bed, animal group, chore, or preservation plan). Adding one real record is enough; everything is skippable.
+5. **Finish** — a summary of what was created, then on to Daily Bread.
+
+Onboarding is skippable and resumable. Skipping shows a quiet "Finish setting up Rootcellar" banner on Daily Bread and Homestead until it's resumed or dismissed. Visiting any other route before onboarding is complete redirects back to `/onboarding`.
+
+Onboarding state lives inside the same `rootcellar.alpha.v1` localStorage blob, under an `onboarding` key:
+
+```ts
+{
+  hasCompletedOnboarding: boolean;
+  completionKind?: "finished" | "skipped";
+  step: 1 | 2 | 3 | 4 | 5;
+  selectedRooms: OnboardingRoomId[];
+  householdBasics: { householdName: string; lastFrostDate: string; firstFrostDate: string };
+  resumeBannerDismissed: boolean;
+  sampleDataLoaded: boolean;
+}
+```
+
+**Resetting onboarding**: Settings → Onboarding → "Reset onboarding" clears this state and sends you back to `/onboarding`.
+
+### Sample Homestead
+
+From the Welcome or Finish step, Daily Bread's empty state, or Settings, you can load a sample homestead: two household members, a few chores, pantry locations/products/batches, garden beds and plantings, an animal group, a preservation plan, and a Daily Bread/Weekly Huddle entry. Loading always confirms first and only adds records — it never overwrites anything you've already entered.
+
+Every sample record uses a `sample_`-prefixed id (see `src/shared/storage/sampleHomestead.ts`). Settings → "Clear sample data" removes exactly those records and leaves everything else untouched.
 
 ## Documents and Equipment Decision
 
@@ -137,6 +181,8 @@ Known limitations: data is local to one browser, there is no backend sync or hou
 
 ```text
 src/
+  onboarding/
+    steps/
   modules/
     preservation/
     pantry/

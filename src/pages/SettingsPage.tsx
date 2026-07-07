@@ -1,7 +1,8 @@
 import { Download, RotateCcw, Trash2 } from "lucide-react";
 import { PageHeader } from "../shared/components/PageHeader";
 import { Button } from "../shared/components/Button";
-import { clearRootcellarData, loadRootcellarData, saveRootcellarData } from "../shared/storage/rootcellarStorage";
+import { clearRootcellarData, createEmptyOnboardingState, loadRootcellarData, saveRootcellarData } from "../shared/storage/rootcellarStorage";
+import { stripSampleHomestead } from "../shared/storage/sampleHomestead";
 
 function downloadLocalData() {
   const data = loadRootcellarData();
@@ -22,9 +23,9 @@ export function SettingsPage() {
     if (!confirmed) return;
 
     clearRootcellarData();
-    window.location.assign("/dashboard");
+    window.location.assign("/");
   };
-  const handleResetOpening = () => {
+  const handleResetOnboarding = () => {
     const current = loadRootcellarData();
     saveRootcellarData({
       ...current,
@@ -33,8 +34,16 @@ export function SettingsPage() {
         onboardingCompletedAt: undefined,
         updatedAt: new Date().toISOString(),
       },
+      onboarding: createEmptyOnboardingState(),
     });
-    window.location.assign("/");
+    window.location.assign("/onboarding");
+  };
+  const handleClearSampleData = () => {
+    const confirmed = window.confirm("Clear the sample homestead? Anything you added yourself will stay.");
+    if (!confirmed) return;
+
+    saveRootcellarData(stripSampleHomestead(loadRootcellarData()));
+    window.location.assign("/homestead");
   };
 
   return (
@@ -73,22 +82,35 @@ export function SettingsPage() {
       </section>
 
       <section className="settings-panel">
-        <h2>Opening setup</h2>
+        <h2>Onboarding</h2>
         <p>
           {profile.householdName}
           {profile.locationLabel ? ` · ${profile.locationLabel}` : ""}. This only changes the local first-run experience.
         </p>
         <div className="button-row">
-          <Button type="button" variant="secondary" onClick={handleResetOpening}>
+          <Button type="button" variant="secondary" onClick={handleResetOnboarding}>
             <RotateCcw size={18} />
-            Run setup again
+            Reset onboarding
           </Button>
         </div>
       </section>
 
+      {data.onboarding.sampleDataLoaded ? (
+        <section className="settings-panel">
+          <h2>Sample data</h2>
+          <p>The sample homestead is loaded. Its records are marked as samples and can be removed without touching anything you added yourself.</p>
+          <div className="button-row">
+            <Button type="button" variant="danger" onClick={handleClearSampleData}>
+              <Trash2 size={18} />
+              Clear sample data
+            </Button>
+          </div>
+        </section>
+      ) : null}
+
       <section className="settings-panel">
         <h2>Documents and equipment</h2>
-        <p>Documents and Equipment are not standalone V1 modules. Photos, notes, receipts, labels, and equipment maintenance live inside the modules they belong to.</p>
+        <p>Documents and Equipment are not standalone V1 rooms. Photos, notes, receipts, labels, and equipment maintenance live inside the rooms they belong to.</p>
       </section>
 
       <section className="settings-panel">

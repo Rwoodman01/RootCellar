@@ -1,9 +1,10 @@
-import { CalendarDays, Check, CircleSlash, CornerUpRight, HandHeart, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarDays, Check, CircleSlash, CornerUpRight, HandHeart, Plus } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Button, LinkButton } from "../../../shared/components/Button";
 import { EmptyState } from "../../../shared/components/EmptyState";
 import { PageHeader } from "../../../shared/components/PageHeader";
+import { Stepper } from "../../../shared/components/Stepper";
 import { formatShortDate } from "../../../shared/utils/dates";
 import { useAnimals } from "../../animals/useAnimals";
 import { useChores } from "../../chores/useChores";
@@ -19,6 +20,7 @@ import type {
   SeasonPriority,
   SeasonPriorityStatus,
   StuckItem,
+  WeeklyHuddleEntry,
 } from "../types";
 import { useHuddle } from "../useHuddle";
 
@@ -71,19 +73,6 @@ export function WeeklyHuddlePage() {
       carryForwardItems: entry?.carryForwardItems.join("\n") || "",
     });
   }, [entry?.weekStart, entry?.wins, entry?.pulseNotes, entry?.priorityNotes, entry?.stuckItems, entry?.decisions, entry?.nextWeekFocus, entry?.carryForwardItems]);
-
-  function saveNotes(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    huddle.updateWeeklyHuddle(weekStart, weekEnd, {
-      wins: lines(notesForm.wins),
-      pulseNotes: notesForm.pulseNotes,
-      priorityNotes: notesForm.priorityNotes,
-      stuckItems: lines(notesForm.stuckItems),
-      decisions: lines(notesForm.decisions),
-      nextWeekFocus: lines(notesForm.nextWeekFocus),
-      carryForwardItems: lines(notesForm.carryForwardItems),
-    });
-  }
 
   function addPriority(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -143,8 +132,32 @@ export function WeeklyHuddlePage() {
     setPulseForm({ title: "", value: "", target: "", unit: "", status: "watch" });
   }
 
-  function updateReviewFlag(flag: "pulseReviewed" | "prioritiesReviewed" | "ownedWorkReviewed" | "stuckListReviewed", value: boolean) {
-    huddle.updateWeeklyHuddle(weekStart, weekEnd, { [flag]: value });
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(() => firstOpenStep(entry));
+  const stepDone = [
+    Boolean(entry?.pulseReviewed),
+    Boolean(entry?.prioritiesReviewed),
+    Boolean(entry?.ownedWorkReviewed),
+    Boolean(entry?.stuckListReviewed),
+    Boolean(entry?.completedAt),
+  ];
+
+  function goToStep(nextStep: number) {
+    setStep(nextStep as 1 | 2 | 3 | 4 | 5);
+  }
+
+  function advance(patch: Parameters<typeof huddle.updateWeeklyHuddle>[2], nextStep: 1 | 2 | 3 | 4 | 5) {
+    huddle.updateWeeklyHuddle(weekStart, weekEnd, patch);
+    setStep(nextStep);
+  }
+
+  function closeHuddle() {
+    huddle.updateWeeklyHuddle(weekStart, weekEnd, {
+      wins: lines(notesForm.wins),
+      decisions: lines(notesForm.decisions),
+      nextWeekFocus: lines(notesForm.nextWeekFocus),
+      carryForwardItems: lines(notesForm.carryForwardItems),
+    });
+    huddle.completeWeeklyHuddle(weekStart, weekEnd);
   }
 
   return (
@@ -153,16 +166,10 @@ export function WeeklyHuddlePage() {
         eyebrow="Weekly Huddle"
         title="What worked, what slipped, and what needs carrying next?"
         actions={
-          <>
-            <LinkButton to="/daily-bread" variant="secondary">
-              <HandHeart size={18} />
-              Daily Bread
-            </LinkButton>
-            <Button type="button" onClick={() => huddle.completeWeeklyHuddle(weekStart, weekEnd)} variant={entry?.completedAt ? "secondary" : "primary"}>
-              <Check size={18} />
-              {entry?.completedAt ? "Completed" : "Close huddle"}
-            </Button>
-          </>
+          <LinkButton to="/daily-bread" variant="secondary">
+            <HandHeart size={18} />
+            Daily Bread
+          </LinkButton>
         }
       >
         <p>Around the table: what worked, what slipped, and what needs carrying next.</p>
@@ -204,142 +211,214 @@ export function WeeklyHuddlePage() {
         </div>
       </section>
 
-      <section className="split-layout">
-        <div className="page-stack">
-          <section className="pantry-panel">
-            <ReviewHeader
-              eyebrow="Pulse"
-              title="How the household is running"
-              checked={Boolean(entry?.pulseReviewed)}
-              onChange={(value) => updateReviewFlag("pulseReviewed", value)}
-            />
-            <div className="rhythm-metric-grid">
-              {pulse.map((metric) => (
-                <PulseCard metric={metric} key={metric.id} />
-              ))}
-            </div>
-          </section>
+      <Stepper steps={["Pulse", "Priorities", "Owned work", "Stuck list", "Close"]} current={step} done={stepDone} onSelect={goToStep} />
 
-          <section className="pantry-panel">
-            <ReviewHeader
-              eyebrow="Season priorities"
-              title="Big rocks"
-              checked={Boolean(entry?.prioritiesReviewed)}
-              onChange={(value) => updateReviewFlag("prioritiesReviewed", value)}
-            />
-            <form className="rhythm-inline-form" onSubmit={addPriority}>
-              <div className="form-grid">
-                <label>
-                  Priority
-                  <input value={priorityForm.title} onChange={(event) => setPriorityForm((current) => ({ ...current, title: event.target.value }))} />
-                </label>
-                <label>
-                  Owner
-                  <select value={priorityForm.ownerMemberId} onChange={(event) => setPriorityForm((current) => ({ ...current, ownerMemberId: event.target.value }))}>
-                    <option value="">Household</option>
-                    {chores.members.map((member) => (
-                      <option value={member.id} key={member.id}>
-                        {member.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Linked room
-                  <select value={priorityForm.linkedModule} onChange={(event) => setPriorityForm((current) => ({ ...current, linkedModule: event.target.value as PriorityLinkedModule }))}>
-                    {priorityModules.map((module) => (
-                      <option value={module} key={module}>
-                        {moduleLabel(module)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Target date
-                  <input type="date" value={priorityForm.targetDate} onChange={(event) => setPriorityForm((current) => ({ ...current, targetDate: event.target.value }))} />
-                </label>
-              </div>
-              <Button type="submit">
-                <Plus size={18} />
-                Add priority
-              </Button>
-            </form>
-            <div className="compact-list">
-              {huddle.data.seasonPriorities.length ? (
-                huddle.data.seasonPriorities.map((priority) => (
-                  <PriorityRow key={priority.id} priority={priority} members={chores.members} onUpdate={(next) => huddle.updateSeasonPriority(priority.id, next)} />
-                ))
-              ) : (
-                <p className="muted">No season priorities yet.</p>
-              )}
+      {step === 1 ? (
+        <section className="pantry-panel">
+          <div className="section-heading">
+            <p className="eyebrow">Pulse</p>
+            <h2>How the household is running</h2>
+          </div>
+          <div className="rhythm-metric-grid">
+            {pulse.map((metric) => (
+              <PulseCard metric={metric} key={metric.id} />
+            ))}
+          </div>
+          <label>
+            Pulse notes
+            <textarea rows={3} value={notesForm.pulseNotes} onChange={(event) => setNotesForm((current) => ({ ...current, pulseNotes: event.target.value }))} />
+          </label>
+          <form className="rhythm-inline-form" onSubmit={addPulse}>
+            <div className="section-heading">
+              <p className="eyebrow">Manual pulse</p>
+              <h2>Add a household number</h2>
             </div>
-          </section>
-
-          <section className="pantry-panel">
-            <ReviewHeader
-              eyebrow="Owned work"
-              title="Who owns what next"
-              checked={Boolean(entry?.ownedWorkReviewed)}
-              onChange={(value) => updateReviewFlag("ownedWorkReviewed", value)}
-            />
-            <form className="rhythm-inline-form" onSubmit={addWork}>
-              <div className="form-grid">
-                <label>
-                  Work
-                  <input value={workForm.title} onChange={(event) => setWorkForm((current) => ({ ...current, title: event.target.value }))} />
-                </label>
-                <label>
-                  Owner
-                  <select value={workForm.ownerMemberId} onChange={(event) => setWorkForm((current) => ({ ...current, ownerMemberId: event.target.value }))}>
-                    <option value="">Household</option>
-                    {chores.members.map((member) => (
-                      <option value={member.id} key={member.id}>
-                        {member.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Due
-                  <input type="date" value={workForm.dueDate} onChange={(event) => setWorkForm((current) => ({ ...current, dueDate: event.target.value }))} />
-                </label>
-              </div>
-              <Button type="submit">
-                <Plus size={18} />
-                Add work
-              </Button>
-            </form>
-            <div className="compact-list">
-              {openWork.length ? (
-                openWork.map((item) => (
-                  <OwnedWorkRow
-                    key={item.id}
-                    item={item}
-                    members={chores.members}
-                    onDone={() => huddle.updateOwnedWorkStatus(item.id, "done")}
-                    onCarry={() =>
-                      huddle.updateOwnedWorkItem(item.id, {
-                        ...item,
-                        status: "carried",
-                        dueDate: item.dueDate || addDays(weekEnd, 1),
-                      })
-                    }
-                    onDrop={() => huddle.updateOwnedWorkStatus(item.id, "dropped")}
-                  />
-                ))
-              ) : (
-                <p className="muted">No open owned work.</p>
-              )}
+            <label>
+              Title
+              <input value={pulseForm.title} onChange={(event) => setPulseForm((current) => ({ ...current, title: event.target.value }))} />
+            </label>
+            <div className="form-grid">
+              <label>
+                Value
+                <input value={pulseForm.value} onChange={(event) => setPulseForm((current) => ({ ...current, value: event.target.value }))} />
+              </label>
+              <label>
+                Target
+                <input value={pulseForm.target} onChange={(event) => setPulseForm((current) => ({ ...current, target: event.target.value }))} />
+              </label>
+              <label>
+                Unit
+                <input value={pulseForm.unit} onChange={(event) => setPulseForm((current) => ({ ...current, unit: event.target.value }))} />
+              </label>
+              <label>
+                Status
+                <select value={pulseForm.status} onChange={(event) => setPulseForm((current) => ({ ...current, status: event.target.value as PulseMetricStatus }))}>
+                  {pulseStatuses.map((status) => (
+                    <option value={status} key={status}>
+                      {statusLabel(status)}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
-          </section>
+            <Button type="submit">
+              <Plus size={18} />
+              Add pulse
+            </Button>
+          </form>
+          <div className="onboarding-actions">
+            <Button type="button" onClick={() => advance({ pulseReviewed: true, pulseNotes: notesForm.pulseNotes }, 2)}>
+              Next: Priorities
+              <ArrowRight size={18} />
+            </Button>
+          </div>
+        </section>
+      ) : null}
 
+      {step === 2 ? (
+        <section className="pantry-panel">
+          <div className="section-heading">
+            <p className="eyebrow">Season priorities</p>
+            <h2>Big rocks</h2>
+          </div>
+          <form className="rhythm-inline-form" onSubmit={addPriority}>
+            <div className="form-grid">
+              <label>
+                Priority
+                <input value={priorityForm.title} onChange={(event) => setPriorityForm((current) => ({ ...current, title: event.target.value }))} />
+              </label>
+              <label>
+                Owner
+                <select value={priorityForm.ownerMemberId} onChange={(event) => setPriorityForm((current) => ({ ...current, ownerMemberId: event.target.value }))}>
+                  <option value="">Household</option>
+                  {chores.members.map((member) => (
+                    <option value={member.id} key={member.id}>
+                      {member.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Linked room
+                <select value={priorityForm.linkedModule} onChange={(event) => setPriorityForm((current) => ({ ...current, linkedModule: event.target.value as PriorityLinkedModule }))}>
+                  {priorityModules.map((module) => (
+                    <option value={module} key={module}>
+                      {moduleLabel(module)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Target date
+                <input type="date" value={priorityForm.targetDate} onChange={(event) => setPriorityForm((current) => ({ ...current, targetDate: event.target.value }))} />
+              </label>
+            </div>
+            <Button type="submit">
+              <Plus size={18} />
+              Add priority
+            </Button>
+          </form>
+          <div className="compact-list">
+            {huddle.data.seasonPriorities.length ? (
+              huddle.data.seasonPriorities.map((priority) => (
+                <PriorityRow key={priority.id} priority={priority} members={chores.members} onUpdate={(next) => huddle.updateSeasonPriority(priority.id, next)} />
+              ))
+            ) : (
+              <p className="muted">No season priorities yet.</p>
+            )}
+          </div>
+          <label>
+            Priority notes
+            <textarea rows={3} value={notesForm.priorityNotes} onChange={(event) => setNotesForm((current) => ({ ...current, priorityNotes: event.target.value }))} />
+          </label>
+          <div className="onboarding-actions">
+            <Button type="button" variant="secondary" onClick={() => goToStep(1)}>
+              <ArrowLeft size={18} />
+              Back
+            </Button>
+            <Button type="button" onClick={() => advance({ prioritiesReviewed: true, priorityNotes: notesForm.priorityNotes }, 3)}>
+              Next: Owned work
+              <ArrowRight size={18} />
+            </Button>
+          </div>
+        </section>
+      ) : null}
+
+      {step === 3 ? (
+        <section className="pantry-panel">
+          <div className="section-heading">
+            <p className="eyebrow">Owned work</p>
+            <h2>Who owns what next</h2>
+          </div>
+          <form className="rhythm-inline-form" onSubmit={addWork}>
+            <div className="form-grid">
+              <label>
+                Work
+                <input value={workForm.title} onChange={(event) => setWorkForm((current) => ({ ...current, title: event.target.value }))} />
+              </label>
+              <label>
+                Owner
+                <select value={workForm.ownerMemberId} onChange={(event) => setWorkForm((current) => ({ ...current, ownerMemberId: event.target.value }))}>
+                  <option value="">Household</option>
+                  {chores.members.map((member) => (
+                    <option value={member.id} key={member.id}>
+                      {member.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Due
+                <input type="date" value={workForm.dueDate} onChange={(event) => setWorkForm((current) => ({ ...current, dueDate: event.target.value }))} />
+              </label>
+            </div>
+            <Button type="submit">
+              <Plus size={18} />
+              Add work
+            </Button>
+          </form>
+          <div className="compact-list">
+            {openWork.length ? (
+              openWork.map((item) => (
+                <OwnedWorkRow
+                  key={item.id}
+                  item={item}
+                  members={chores.members}
+                  onDone={() => huddle.updateOwnedWorkStatus(item.id, "done")}
+                  onCarry={() =>
+                    huddle.updateOwnedWorkItem(item.id, {
+                      ...item,
+                      status: "carried",
+                      dueDate: item.dueDate || addDays(weekEnd, 1),
+                    })
+                  }
+                  onDrop={() => huddle.updateOwnedWorkStatus(item.id, "dropped")}
+                />
+              ))
+            ) : (
+              <p className="muted">No open owned work.</p>
+            )}
+          </div>
+          <div className="onboarding-actions">
+            <Button type="button" variant="secondary" onClick={() => goToStep(2)}>
+              <ArrowLeft size={18} />
+              Back
+            </Button>
+            <Button type="button" onClick={() => advance({ ownedWorkReviewed: true }, 4)}>
+              Next: Stuck list
+              <ArrowRight size={18} />
+            </Button>
+          </div>
+        </section>
+      ) : null}
+
+      {step === 4 ? (
+        <>
           <section className="pantry-panel">
-            <ReviewHeader
-              eyebrow="Needs attention"
-              title="Name what is stuck"
-              checked={Boolean(entry?.stuckListReviewed)}
-              onChange={(value) => updateReviewFlag("stuckListReviewed", value)}
-            />
+            <div className="section-heading">
+              <p className="eyebrow">Needs attention</p>
+              <h2>Name what is stuck</h2>
+            </div>
             <form className="rhythm-inline-form" onSubmit={addStuck}>
               <div className="form-grid">
                 <label>
@@ -381,6 +460,10 @@ export function WeeklyHuddlePage() {
                 <p className="muted">Nothing is on the stuck list.</p>
               )}
             </div>
+            <label>
+              Stuck list notes
+              <textarea rows={3} value={notesForm.stuckItems} onChange={(event) => setNotesForm((current) => ({ ...current, stuckItems: event.target.value }))} />
+            </label>
           </section>
 
           <section className="pantry-panel">
@@ -413,103 +496,54 @@ export function WeeklyHuddlePage() {
               </EmptyState>
             )}
           </section>
-        </div>
 
-        <div className="page-stack">
-          <form className="form-panel rhythm-notes-panel" onSubmit={saveNotes}>
-            <div className="section-heading">
-              <p className="eyebrow">Around the table</p>
-              <h2>Notes and decisions</h2>
-            </div>
-            <label>
-              Wins
-              <textarea rows={3} value={notesForm.wins} onChange={(event) => setNotesForm((current) => ({ ...current, wins: event.target.value }))} />
-            </label>
-            <label>
-              Pulse notes
-              <textarea rows={3} value={notesForm.pulseNotes} onChange={(event) => setNotesForm((current) => ({ ...current, pulseNotes: event.target.value }))} />
-            </label>
-            <label>
-              Priority notes
-              <textarea rows={3} value={notesForm.priorityNotes} onChange={(event) => setNotesForm((current) => ({ ...current, priorityNotes: event.target.value }))} />
-            </label>
-            <label>
-              Stuck list notes
-              <textarea rows={3} value={notesForm.stuckItems} onChange={(event) => setNotesForm((current) => ({ ...current, stuckItems: event.target.value }))} />
-            </label>
-            <label>
-              Decisions
-              <textarea rows={3} value={notesForm.decisions} onChange={(event) => setNotesForm((current) => ({ ...current, decisions: event.target.value }))} />
-            </label>
-            <label>
-              Next week focus
-              <textarea rows={3} value={notesForm.nextWeekFocus} onChange={(event) => setNotesForm((current) => ({ ...current, nextWeekFocus: event.target.value }))} />
-            </label>
-            <label>
-              Carries into next week
-              <textarea rows={3} value={notesForm.carryForwardItems} onChange={(event) => setNotesForm((current) => ({ ...current, carryForwardItems: event.target.value }))} />
-            </label>
-            <Button type="submit">
+          <div className="onboarding-actions">
+            <Button type="button" variant="secondary" onClick={() => goToStep(3)}>
+              <ArrowLeft size={18} />
+              Back
+            </Button>
+            <Button type="button" onClick={() => advance({ stuckListReviewed: true, stuckItems: lines(notesForm.stuckItems) }, 5)}>
+              Next: Close
+              <ArrowRight size={18} />
+            </Button>
+          </div>
+        </>
+      ) : null}
+
+      {step === 5 ? (
+        <section className="form-panel rhythm-notes-panel">
+          <div className="section-heading">
+            <p className="eyebrow">Around the table</p>
+            <h2>Notes and decisions</h2>
+          </div>
+          <label>
+            Wins
+            <textarea rows={3} value={notesForm.wins} onChange={(event) => setNotesForm((current) => ({ ...current, wins: event.target.value }))} />
+          </label>
+          <label>
+            Decisions
+            <textarea rows={3} value={notesForm.decisions} onChange={(event) => setNotesForm((current) => ({ ...current, decisions: event.target.value }))} />
+          </label>
+          <label>
+            Next week focus
+            <textarea rows={3} value={notesForm.nextWeekFocus} onChange={(event) => setNotesForm((current) => ({ ...current, nextWeekFocus: event.target.value }))} />
+          </label>
+          <label>
+            Carries into next week
+            <textarea rows={3} value={notesForm.carryForwardItems} onChange={(event) => setNotesForm((current) => ({ ...current, carryForwardItems: event.target.value }))} />
+          </label>
+          <div className="onboarding-actions">
+            <Button type="button" variant="secondary" onClick={() => goToStep(4)}>
+              <ArrowLeft size={18} />
+              Back
+            </Button>
+            <Button type="button" onClick={closeHuddle} variant={entry?.completedAt ? "secondary" : "primary"}>
               <Check size={18} />
-              Save huddle
+              {entry?.completedAt ? "Completed" : "Close huddle"}
             </Button>
-          </form>
-
-          <form className="form-panel rhythm-inline-form" onSubmit={addPulse}>
-            <div className="section-heading">
-              <p className="eyebrow">Manual pulse</p>
-              <h2>Add a household number</h2>
-            </div>
-            <label>
-              Title
-              <input value={pulseForm.title} onChange={(event) => setPulseForm((current) => ({ ...current, title: event.target.value }))} />
-            </label>
-            <div className="form-grid">
-              <label>
-                Value
-                <input value={pulseForm.value} onChange={(event) => setPulseForm((current) => ({ ...current, value: event.target.value }))} />
-              </label>
-              <label>
-                Target
-                <input value={pulseForm.target} onChange={(event) => setPulseForm((current) => ({ ...current, target: event.target.value }))} />
-              </label>
-              <label>
-                Unit
-                <input value={pulseForm.unit} onChange={(event) => setPulseForm((current) => ({ ...current, unit: event.target.value }))} />
-              </label>
-              <label>
-                Status
-                <select value={pulseForm.status} onChange={(event) => setPulseForm((current) => ({ ...current, status: event.target.value as PulseMetricStatus }))}>
-                  {pulseStatuses.map((status) => (
-                    <option value={status} key={status}>
-                      {statusLabel(status)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <Button type="submit">
-              <Plus size={18} />
-              Add pulse
-            </Button>
-          </form>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function ReviewHeader({ eyebrow, title, checked, onChange }: { eyebrow: string; title: string; checked: boolean; onChange: (checked: boolean) => void }) {
-  return (
-    <div className="section-heading section-heading-row rhythm-review-heading">
-      <div>
-        <p className="eyebrow">{eyebrow}</p>
-        <h2>{title}</h2>
-      </div>
-      <label className="checkbox-row rhythm-review-check">
-        <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
-        Reviewed
-      </label>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -645,6 +679,14 @@ function SignalRow({ signal, onCarry }: { signal: WeeklySignal; onCarry: () => v
       </Button>
     </article>
   );
+}
+
+function firstOpenStep(entry?: WeeklyHuddleEntry): 1 | 2 | 3 | 4 | 5 {
+  if (!entry || !entry.pulseReviewed) return 1;
+  if (!entry.prioritiesReviewed) return 2;
+  if (!entry.ownedWorkReviewed) return 3;
+  if (!entry.stuckListReviewed) return 4;
+  return 5;
 }
 
 function lines(value: string): string[] {
