@@ -28,17 +28,14 @@ import { PantryProductFormPage } from "./modules/pantry/pages/PantryProductFormP
 import { PantryBatchFormPage } from "./modules/pantry/pages/PantryBatchFormPage";
 import { PantryEatFirstPage } from "./modules/pantry/pages/PantryEatFirstPage";
 import { PantryLocationPage } from "./modules/pantry/pages/PantryLocationPage";
-import { PantryImportPage } from "./modules/pantry/pages/PantryImportPage";
 import { GardenOverviewPage } from "./modules/garden/pages/GardenOverviewPage";
 import { BedsPage } from "./modules/garden/pages/BedsPage";
-import { BedPlannerPage } from "./modules/garden/pages/BedPlannerPage";
 import { PlantingsPage } from "./modules/garden/pages/PlantingsPage";
 import { PlantingFormPage } from "./modules/garden/pages/PlantingFormPage";
 import { HarvestLogPage } from "./modules/garden/pages/HarvestLogPage";
 import { VarietiesPage } from "./modules/garden/pages/VarietiesPage";
 import { SeedPacketsPage } from "./modules/garden/pages/SeedPacketsPage";
 import { PlanBackwardPage } from "./modules/garden/pages/PlanBackwardPage";
-import { FallFitPage } from "./modules/garden/pages/FallFitPage";
 import { AnimalsOverviewPage } from "./modules/animals/pages/AnimalsOverviewPage";
 import { AnimalGroupsPage } from "./modules/animals/pages/AnimalGroupsPage";
 import { AnimalGroupFormPage } from "./modules/animals/pages/AnimalGroupFormPage";
@@ -56,7 +53,6 @@ import { ChoreListPage } from "./modules/chores/pages/ChoreListPage";
 import { ChoreFormPage } from "./modules/chores/pages/ChoreFormPage";
 import { ChoreDetailPage } from "./modules/chores/pages/ChoreDetailPage";
 import { KidModePage } from "./modules/chores/pages/KidModePage";
-import { WeeklyChoreReviewPage } from "./modules/chores/pages/WeeklyChoreReviewPage";
 import { FamilyMembersPage } from "./modules/chores/pages/FamilyMembersPage";
 import { SeasonTemplatesPage } from "./modules/chores/pages/SeasonTemplatesPage";
 import { DailyBreadPage } from "./modules/huddle/pages/DailyBreadPage";
@@ -102,10 +98,8 @@ createRoot(document.getElementById("root")!).render(
                       <Route path="/pantry/locations" element={<PantryLocationPage />} />
                       <Route path="/pantry/locations/:locationId" element={<PantryLocationPage />} />
                       <Route path="/pantry/eat-first" element={<PantryEatFirstPage />} />
-                      <Route path="/pantry/import" element={<PantryImportPage />} />
                       <Route path="/garden" element={<GardenOverviewPage />} />
                       <Route path="/garden/beds" element={<BedsPage />} />
-                      <Route path="/garden/planner" element={<BedPlannerPage />} />
                       <Route path="/garden/plantings" element={<PlantingsPage />} />
                       <Route path="/garden/plantings/new" element={<PlantingFormPage />} />
                       <Route path="/garden/plantings/:plantingId/edit" element={<PlantingFormPage />} />
@@ -113,8 +107,6 @@ createRoot(document.getElementById("root")!).render(
                       <Route path="/garden/varieties" element={<VarietiesPage />} />
                       <Route path="/garden/seeds" element={<SeedPacketsPage />} />
                       <Route path="/garden/targets" element={<PlanBackwardPage />} />
-                      <Route path="/garden/plan" element={<PlanBackwardPage />} />
-                      <Route path="/garden/fall-fit" element={<FallFitPage />} />
                       <Route path="/animals" element={<AnimalsOverviewPage />} />
                       <Route path="/animals/groups" element={<AnimalGroupsPage />} />
                       <Route path="/animals/groups/new" element={<AnimalGroupFormPage />} />
@@ -133,7 +125,6 @@ createRoot(document.getElementById("root")!).render(
                       <Route path="/chores/list" element={<ChoreListPage />} />
                       <Route path="/chores/new" element={<ChoreFormPage />} />
                       <Route path="/chores/kid-mode" element={<KidModePage />} />
-                      <Route path="/chores/review" element={<WeeklyChoreReviewPage />} />
                       <Route path="/chores/members" element={<FamilyMembersPage />} />
                       <Route path="/chores/templates" element={<SeasonTemplatesPage />} />
                       <Route path="/chores/:choreId/edit" element={<ChoreFormPage />} />

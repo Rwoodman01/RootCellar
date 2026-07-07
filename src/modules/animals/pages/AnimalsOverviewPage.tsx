@@ -1,32 +1,24 @@
-import { ArrowRight, Bell, ClipboardList, Egg, Plus, Rabbit, Stethoscope } from "lucide-react";
+import { ArrowRight, ClipboardList, Plus, Rabbit, Stethoscope } from "lucide-react";
 import { Link } from "react-router-dom";
 import { LinkButton } from "../../../shared/components/Button";
 import { EmptyState } from "../../../shared/components/EmptyState";
 import { PageHeader } from "../../../shared/components/PageHeader";
 import { formatShortDate } from "../../../shared/utils/dates";
 import { eventTypeLabel } from "../constants";
-import {
-  activeGroups,
-  activeIndividuals,
-  dueCareReminders,
-  dueFollowUps,
-  recentProductionSummary,
-  sortedEvents,
-  sortedReminders,
-  targetLabel,
-} from "../animalUtils";
+import { activeGroups, activeIndividuals, dueCareReminders, dueFollowUps, targetLabel } from "../animalUtils";
 import { useAnimals } from "../useAnimals";
 
 export function AnimalsOverviewPage() {
   const { data } = useAnimals();
   const activeGroupCount = activeGroups(data.groups).length;
   const activeIndividualCount = activeIndividuals(data.individuals).length;
-  const reminders = sortedReminders(data.careReminders).slice(0, 4);
-  const recentEvents = sortedEvents(data.events).slice(0, 5);
   const dueReminders = dueCareReminders(data.careReminders);
   const dueFollowUpEvents = dueFollowUps(data.events);
-  const productionLines = recentProductionSummary(data.productionRecords);
   const isEmpty = data.groups.length === 0 && data.individuals.length === 0;
+  const needsAttention = [
+    ...dueReminders.map((reminder) => ({ id: reminder.id, title: reminder.title, detail: targetLabel(data, reminder), date: reminder.nextDueDate })),
+    ...dueFollowUpEvents.map((event) => ({ id: event.id, title: eventTypeLabel(event.eventType), detail: targetLabel(data, event), date: event.followUpDate || event.date })),
+  ].slice(0, 6);
 
   return (
     <div className="page-stack">
@@ -66,18 +58,6 @@ export function AnimalsOverviewPage() {
           <small>{data.individuals.length} total animal records</small>
           <ArrowRight size={18} />
         </Link>
-        <Link to="/animals/reminders" className="summary-main">
-          <span>Upcoming care</span>
-          <strong>{reminders.length}</strong>
-          <small>{dueReminders.length} due now</small>
-          <ArrowRight size={18} />
-        </Link>
-        <Link to="/animals/timeline" className="summary-main">
-          <span>Recent events</span>
-          <strong>{data.events.length}</strong>
-          <small>Unified logbook</small>
-          <ArrowRight size={18} />
-        </Link>
       </section>
 
       {isEmpty ? (
@@ -92,36 +72,8 @@ export function AnimalsOverviewPage() {
         >
           A laying flock can stay a group. Clover the goat can be an individual. You can use both.
         </EmptyState>
-      ) : null}
-
-      <section className="animal-dashboard-grid">
-        <div className="pantry-panel">
-          <div className="section-heading section-heading-row">
-            <div>
-              <p className="eyebrow">Care reminders</p>
-              <h2>Upcoming dates</h2>
-            </div>
-            <Bell size={18} />
-          </div>
-          <div className="compact-list">
-            {reminders.length ? (
-              reminders.map((reminder) => (
-                <Link to="/animals/reminders" className="compact-row" key={reminder.id}>
-                  <strong>{reminder.title}</strong>
-                  <span>{targetLabel(data, reminder)}</span>
-                  <small>
-                    {formatShortDate(reminder.nextDueDate)}
-                    {reminder.suggestedCadence ? ` - ${reminder.suggestedCadence}` : ""}
-                  </small>
-                </Link>
-              ))
-            ) : (
-              <p className="muted">No care reminders yet.</p>
-            )}
-          </div>
-        </div>
-
-        <div className="pantry-panel">
+      ) : (
+        <section className="pantry-panel">
           <div className="section-heading section-heading-row">
             <div>
               <p className="eyebrow">Needs attention</p>
@@ -130,62 +82,20 @@ export function AnimalsOverviewPage() {
             <Stethoscope size={18} />
           </div>
           <div className="compact-list">
-            {[...dueReminders.map((reminder) => ({ id: reminder.id, title: reminder.title, detail: targetLabel(data, reminder), date: reminder.nextDueDate })), ...dueFollowUpEvents.map((event) => ({ id: event.id, title: eventTypeLabel(event.eventType), detail: targetLabel(data, event), date: event.followUpDate || event.date }))].slice(0, 5).map((entry) => (
-              <Link to="/animals/timeline" className="compact-row" key={entry.id}>
-                <strong>{entry.title}</strong>
-                <span>{entry.detail}</span>
-                <small>{formatShortDate(entry.date)}</small>
-              </Link>
-            ))}
-            {dueReminders.length === 0 && dueFollowUpEvents.length === 0 ? <p className="muted">Nothing is due right now.</p> : null}
-          </div>
-        </div>
-
-        <div className="pantry-panel">
-          <div className="section-heading section-heading-row">
-            <div>
-              <p className="eyebrow">Production</p>
-              <h2>Last 30 days</h2>
-            </div>
-            <Egg size={18} />
-          </div>
-          <div className="compact-list">
-            {productionLines.length ? (
-              productionLines.slice(0, 5).map((line) => (
-                <Link to="/animals/feed-production" className="compact-row" key={line}>
-                  <strong>{line}</strong>
-                  <span>Recorded from animal production logs</span>
+            {needsAttention.length ? (
+              needsAttention.map((entry) => (
+                <Link to="/animals/timeline" className="compact-row" key={entry.id}>
+                  <strong>{entry.title}</strong>
+                  <span>{entry.detail}</span>
+                  <small>{formatShortDate(entry.date)}</small>
                 </Link>
               ))
             ) : (
-              <p className="muted">Production totals appear after you log eggs, milk, meat, fiber, honey, or other output.</p>
+              <p className="muted">Nothing is due right now.</p>
             )}
           </div>
-        </div>
-
-        <div className="pantry-panel">
-          <div className="section-heading section-heading-row">
-            <div>
-              <p className="eyebrow">Recent events</p>
-              <h2>Animal memory</h2>
-            </div>
-            <Link to="/animals/timeline">Open</Link>
-          </div>
-          <div className="compact-list">
-            {recentEvents.length ? (
-              recentEvents.map((event) => (
-                <Link to="/animals/timeline" className="compact-row" key={event.id}>
-                  <strong>{eventTypeLabel(event.eventType)}</strong>
-                  <span>{targetLabel(data, event)}</span>
-                  <small>{formatShortDate(event.date)}</small>
-                </Link>
-              ))
-            ) : (
-              <p className="muted">No events logged yet.</p>
-            )}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 }

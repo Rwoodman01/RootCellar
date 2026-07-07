@@ -1,4 +1,4 @@
-import { ArrowRight, Clock, MapPin, PackagePlus, Plus, RotateCcw } from "lucide-react";
+import { ArrowRight, PackagePlus, Plus, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button, LinkButton } from "../../../shared/components/Button";
@@ -6,7 +6,7 @@ import { EmptyState } from "../../../shared/components/EmptyState";
 import { PageHeader } from "../../../shared/components/PageHeader";
 import { formatShortDate } from "../../../shared/utils/dates";
 import { categoryLabel, unitLabel } from "../constants";
-import { formatQuantity, getEatFirstBatches, getLowStockProducts, getProductInsight, getProductTotal, getUseSoonBatches } from "../pantryUtils";
+import { formatQuantity, getEatFirstBatches, getLowStockProducts, getProductTotal, getUseSoonBatches } from "../pantryUtils";
 import { usePantry } from "../usePantry";
 
 export function PantryOverviewPage() {
@@ -15,10 +15,6 @@ export function PantryOverviewPage() {
   const eatFirst = getEatFirstBatches(data).slice(0, 4);
   const useSoon = getUseSoonBatches(data).slice(0, 4);
   const lowStock = getLowStockProducts(data).slice(0, 4);
-  const locationCounts = data.locations.map((location) => ({
-    location,
-    batches: data.batches.filter((batch) => batch.locationId === location.id && batch.quantity > 0),
-  }));
 
   const handleUseOne = (productId: string) => {
     const result = useOneFromProduct(productId);
@@ -44,7 +40,9 @@ export function PantryOverviewPage() {
           </>
         }
       >
-        <p>Fast household inventory built around one-tap deduction from the oldest open batch.</p>
+        <p>
+          Fast household inventory built around one-tap deduction from the oldest open batch. <Link to="/pantry/locations">Manage locations</Link>
+        </p>
       </PageHeader>
 
       {data.products.length === 0 ? (
@@ -133,48 +131,6 @@ export function PantryOverviewPage() {
                 ) : (
                   <p className="muted">No products are under their low-stock threshold.</p>
                 )}
-              </div>
-            </div>
-          </section>
-
-          <section className="pantry-grid">
-            <div className="pantry-panel">
-              <div className="section-heading section-heading-row">
-                <div>
-                  <p className="eyebrow">Locations</p>
-                  <h2>Where food sits</h2>
-                </div>
-                <Link to="/pantry/locations">Open</Link>
-              </div>
-              <div className="location-chip-grid">
-                {locationCounts
-                  .filter((entry) => entry.batches.length)
-                  .slice(0, 8)
-                  .map((entry) => (
-                    <Link to={`/pantry/locations/${entry.location.id}`} className="location-chip" key={entry.location.id}>
-                      <MapPin size={16} />
-                      <span>{entry.location.name}</span>
-                      <strong>{entry.batches.length}</strong>
-                    </Link>
-                  ))}
-              </div>
-            </div>
-
-            <div className="pantry-panel">
-              <div className="section-heading">
-                <p className="eyebrow">Runway</p>
-                <h2>What usage says</h2>
-              </div>
-              <div className="compact-list">
-                {data.products.slice(0, 4).map((product) => (
-                  <Link to={`/pantry/products/${product.id}`} className="compact-row" key={product.id}>
-                    <strong>{product.name}</strong>
-                    <span>{getProductInsight(product, data)}</span>
-                    <small>
-                      <Clock size={14} /> {product.defaultRotationMonths} month rotation
-                    </small>
-                  </Link>
-                ))}
               </div>
             </div>
           </section>

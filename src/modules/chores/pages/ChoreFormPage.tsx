@@ -201,19 +201,6 @@ export function ChoreFormPage() {
             </select>
           </label>
           <label>
-            Backup
-            <select value={backupMemberId} onChange={(event) => setBackupMemberId(event.target.value)}>
-              <option value="">No backup yet</option>
-              {data.members
-                .filter((member) => member.id !== ownerMemberId)
-                .map((member) => (
-                  <option key={member.id} value={member.id}>
-                    {member.name}
-                  </option>
-                ))}
-            </select>
-          </label>
-          <label>
             Recurrence type
             <select value={recurrenceType} onChange={(event) => setRecurrenceType(event.target.value as ChoreRecurrenceType)}>
               {RECURRENCE_OPTIONS.map((option) => (
@@ -390,12 +377,22 @@ export function ChoreFormPage() {
           ) : null}
         </section>
 
-        <section className="chore-recurrence-panel">
-          <div className="section-heading">
-            <p className="eyebrow">Context</p>
-            <h2>Where this work lives</h2>
-          </div>
+        <details className="more-details">
+          <summary>More details (backup, location, effort, verification)</summary>
           <div className="form-grid">
+            <label>
+              Backup
+              <select value={backupMemberId} onChange={(event) => setBackupMemberId(event.target.value)}>
+                <option value="">No backup yet</option>
+                {data.members
+                  .filter((member) => member.id !== ownerMemberId)
+                  .map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
             <label>
               Linked entity
               <select
@@ -485,7 +482,7 @@ export function ChoreFormPage() {
             How we do it
             <textarea value={howWeDoIt} onChange={(event) => setHowWeDoIt(event.target.value)} rows={5} placeholder="The household version of done." />
           </label>
-        </section>
+        </details>
 
         <div className="button-row">
           <Link className="button button-secondary" to={chore ? `/chores/${chore.id}` : "/chores"}>

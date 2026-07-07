@@ -1948,6 +1948,37 @@ summary {
   }
 }
 
+.more-details {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 0.9rem 0.9rem;
+  background: var(--paper);
+}
+
+.more-details > summary {
+  padding: 0.75rem 0;
+  color: var(--leaf-deep);
+  font-weight: 720;
+  list-style: none;
+  cursor: pointer;
+}
+
+.more-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.more-details > summary::before {
+  content: "+ ";
+}
+
+.more-details[open] > summary::before {
+  content: "\2212 ";
+}
+
+.more-details .form-grid {
+  margin-top: 0.5rem;
+}
+
 @media print {
   body {
     background: #fff;

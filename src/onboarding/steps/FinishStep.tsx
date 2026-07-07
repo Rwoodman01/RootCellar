@@ -49,7 +49,7 @@ export function FinishStep() {
 
       {state.selectedRooms.includes("garden") ? (
         <p className="muted">
-          Next best action: <Link to="/garden/plan">plan backward from a food goal</Link> in Garden.
+          Next best action: <Link to="/garden/targets">plan backward from a food goal</Link> in Garden.
         </p>
       ) : null}
 

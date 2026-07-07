@@ -98,42 +98,49 @@ export function AnimalGroupFormPage() {
             <input value={species} onChange={(event) => setSpecies(event.target.value)} required placeholder="Chickens" />
           </label>
           <label>
-            Purpose
-            <select value={purpose} onChange={(event) => setPurpose(event.target.value as AnimalPurpose)}>
-              {ANIMAL_PURPOSE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
             Count
             <input type="number" min="0" step="1" value={count} onChange={(event) => setCount(Number(event.target.value))} />
           </label>
-          <label>
-            Location
-            <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Coop, pasture, brooder" />
-          </label>
-          <label>
-            Start date
-            <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
-          </label>
-          <label>
-            Status
-            <select value={status} onChange={(event) => setStatus(event.target.value as AnimalStatus)}>
-              {ANIMAL_STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
         </div>
-        <label>
-          Notes
-          <textarea rows={5} value={notes} onChange={(event) => setNotes(event.target.value)} />
-        </label>
+
+        <details className="more-details">
+          <summary>More details (purpose, location, status, notes)</summary>
+          <div className="form-grid">
+            <label>
+              Purpose
+              <select value={purpose} onChange={(event) => setPurpose(event.target.value as AnimalPurpose)}>
+                {ANIMAL_PURPOSE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Location
+              <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Coop, pasture, brooder" />
+            </label>
+            <label>
+              Start date
+              <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
+            </label>
+            <label>
+              Status
+              <select value={status} onChange={(event) => setStatus(event.target.value as AnimalStatus)}>
+                {ANIMAL_STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <label>
+            Notes
+            <textarea rows={5} value={notes} onChange={(event) => setNotes(event.target.value)} />
+          </label>
+        </details>
+
         <div className="button-row">
           <Link className="button button-secondary" to={group ? `/animals/groups/${group.id}` : "/animals/groups"}>
             <ArrowLeft size={18} />

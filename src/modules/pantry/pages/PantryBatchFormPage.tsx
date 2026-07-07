@@ -177,23 +177,6 @@ export function PantryBatchFormPage() {
 
         <div className="form-grid">
           <label>
-            Batch code
-            <input value={batchCode} onChange={(event) => setBatchCode(event.target.value)} placeholder="2026-salsa-01" />
-          </label>
-          <label>
-            Method / storage
-            <select value={method} onChange={(event) => setMethod(event.target.value as PantryMethod)}>
-              {METHOD_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <div className="form-grid">
-          <label>
             Quantity
             <input type="number" min="0" step="0.1" value={quantity} onChange={(event) => setQuantity(Number(event.target.value))} required />
           </label>
@@ -206,17 +189,6 @@ export function PantryBatchFormPage() {
                 </option>
               ))}
             </select>
-          </label>
-        </div>
-
-        <div className="form-grid">
-          <label>
-            Date added / preserved
-            <input type="date" value={dateAdded} onChange={(event) => handleDateAdded(event.target.value)} required />
-          </label>
-          <label>
-            Eat by / use by
-            <input type="date" value={eatByDate} onChange={(event) => setEatByDate(event.target.value)} />
           </label>
         </div>
 
@@ -237,49 +209,73 @@ export function PantryBatchFormPage() {
               Custom location
               <input value={customLocation} onChange={(event) => setCustomLocation(event.target.value)} />
             </label>
-          ) : (
+          ) : null}
+        </div>
+
+        <details className="more-details">
+          <summary>More details (batch code, method, dates, source, notes)</summary>
+          <div className="form-grid">
             <label>
-              Container / bin
-              <input value={container} onChange={(event) => setContainer(event.target.value)} placeholder="Shelf 2, blue tote, #4 bucket" />
+              Batch code
+              <input value={batchCode} onChange={(event) => setBatchCode(event.target.value)} placeholder="2026-salsa-01" />
             </label>
-          )}
-        </div>
+            <label>
+              Method / storage
+              <select value={method} onChange={(event) => setMethod(event.target.value as PantryMethod)}>
+                {METHOD_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Date added / preserved
+              <input type="date" value={dateAdded} onChange={(event) => handleDateAdded(event.target.value)} required />
+            </label>
+            <label>
+              Eat by / use by
+              <input type="date" value={eatByDate} onChange={(event) => setEatByDate(event.target.value)} />
+            </label>
+            {locationId !== "new" ? (
+              <label>
+                Container / bin
+                <input value={container} onChange={(event) => setContainer(event.target.value)} placeholder="Shelf 2, blue tote, #4 bucket" />
+              </label>
+            ) : null}
+            <label>
+              Source
+              <select value={sourceType} onChange={(event) => setSourceType(event.target.value as PantrySourceType)}>
+                {SOURCE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Source id placeholder
+              <input value={sourceId} onChange={(event) => setSourceId(event.target.value)} />
+            </label>
+            <label>
+              Packaging
+              <input value={packaging} onChange={(event) => setPackaging(event.target.value)} placeholder="Vacuum bags, mylar, cartons..." />
+            </label>
+            <label>
+              Next seal / condition check
+              <input type="date" value={nextCheckDate} onChange={(event) => setNextCheckDate(event.target.value)} />
+            </label>
+            <label>
+              Last checked
+              <input type="date" value={lastCheckedDate} onChange={(event) => setLastCheckedDate(event.target.value)} />
+            </label>
+          </div>
+          <label>
+            Notes
+            <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={5} />
+          </label>
+        </details>
 
-        <div className="form-grid">
-          <label>
-            Source
-            <select value={sourceType} onChange={(event) => setSourceType(event.target.value as PantrySourceType)}>
-              {SOURCE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Source id placeholder
-            <input value={sourceId} onChange={(event) => setSourceId(event.target.value)} />
-          </label>
-        </div>
-
-        <div className="form-grid">
-          <label>
-            Packaging
-            <input value={packaging} onChange={(event) => setPackaging(event.target.value)} placeholder="Vacuum bags, mylar, cartons..." />
-          </label>
-          <label>
-            Next seal / condition check
-            <input type="date" value={nextCheckDate} onChange={(event) => setNextCheckDate(event.target.value)} />
-          </label>
-        </div>
-        <label>
-          Last checked
-          <input type="date" value={lastCheckedDate} onChange={(event) => setLastCheckedDate(event.target.value)} />
-        </label>
-        <label>
-          Notes
-          <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={5} />
-        </label>
         <div className="button-row">
           <Link className="button button-secondary" to={existingBatch ? `/pantry/products/${existingBatch.productId}` : "/pantry"}>
             <ArrowLeft size={18} />
